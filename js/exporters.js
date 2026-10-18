@@ -17,8 +17,8 @@
   }
 
   const MeshIO = {
-    // Export Mesh to .OBJ format
-    exportOBJ: function(mesh, filename = 'mesh.obj') {
+    // Export Mesh to .OBJ format (with MTL texture link for Xogot / Godot / Blender)
+    exportOBJ: function(mesh, filename = 'medieval_guildhall.obj') {
       if (!mesh || !mesh.geometry) return;
       const geom = mesh.geometry.isBufferGeometry ? mesh.geometry : new THREE.BufferGeometry().fromGeometry(mesh.geometry);
       const pos = geom.attributes.position;
@@ -26,14 +26,16 @@
       const uv = geom.attributes.uv;
       const index = geom.index;
 
-      let output = '# MeshCraft 3D Studio - OBJ Exporter\n';
-      output += '# Vertices: ' + pos.count + '\n\n';
+      const mtlName = filename.replace(/\.obj$/i, '.mtl');
+      let output = '# MeshCraft 3D Studio - OBJ Exporter (Xogot / Godot Ready)\n';
+      output += '# Vertices: ' + pos.count + '\n';
+      output += `mtllib ${mtlName}\n`;
+      output += 'o MedievalGuildhall\n\n';
 
-      // Vertices
-      const matrix = mesh.matrixWorld;
+      // Vertices (local upright coordinates so turntable rotation is not baked in)
       const v = new THREE.Vector3();
       for (let i = 0; i < pos.count; i++) {
-        v.fromBufferAttribute(pos, i).applyMatrix4(matrix);
+        v.fromBufferAttribute(pos, i);
         output += `v ${v.x.toFixed(5)} ${v.y.toFixed(5)} ${v.z.toFixed(5)}\n`;
       }
 
@@ -49,14 +51,14 @@
       if (normal) {
         output += '\n# Normals\n';
         const n = new THREE.Vector3();
-        const normalMatrix = new THREE.Matrix3().getNormalMatrix(matrix);
         for (let i = 0; i < normal.count; i++) {
-          n.fromBufferAttribute(normal, i).applyMatrix3(normalMatrix).normalize();
+          n.fromBufferAttribute(normal, i).normalize();
           output += `vn ${n.x.toFixed(4)} ${n.y.toFixed(4)} ${n.z.toFixed(4)}\n`;
         }
       }
 
       output += '\n# Faces\n';
+      output += 'usemtl MedievalGuildhall_PBR\n';
       output += 's 1\n';
 
       // Faces (1-indexed)
