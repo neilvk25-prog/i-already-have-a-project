@@ -1078,16 +1078,21 @@
     // =========================================================================
     // Front Right Arched Window
     const winFrontX = 0.98;
-    const winFrontY = -0.82;
-    addBox(0.76, 0.94, 0.14, winFrontX, winFrontY, 1.38, 1, 0); // Stone frame
-    addBox(0.62, 0.80, 0.16, winFrontX, winFrontY, 1.39, 0, 2); // Glowing window + iron grille
-    addBox(0.86, 0.10, 0.22, winFrontX, winFrontY - 0.48, 1.42, 1, 0); // Window sill
+    const winFrontY = -0.88;
+    addBox(0.76, 0.78, 0.14, winFrontX, winFrontY, 1.38, 1, 0); // Stone frame
+    addBox(0.62, 0.68, 0.16, winFrontX, winFrontY, 1.39, 0, 2); // Glowing window + iron grille
+    // Arched top of front window
+    addCyl(0.38, 0.38, 0.14, 16, winFrontX, winFrontY + 0.39, 1.38, 1, 0, Math.PI * 0.5, 0, 0);
+    addCyl(0.31, 0.31, 0.16, 16, winFrontX, winFrontY + 0.39, 1.39, 0, 2, Math.PI * 0.5, 0, 0);
+    addBox(0.86, 0.10, 0.22, winFrontX, winFrontY - 0.42, 1.42, 1, 0); // Window sill
 
     // Right Side Wall Arched Windows (2 large arched windows along +X wall)
     [-0.58, 0.58].forEach(wz => {
-      addBox(0.14, 0.94, 0.72, 1.84, winFrontY, wz, 1, 0);
-      addBox(0.16, 0.80, 0.58, 1.85, winFrontY, wz, 0, 2);
-      addBox(0.22, 0.10, 0.82, 1.88, winFrontY - 0.48, wz, 1, 0);
+      addBox(0.14, 0.78, 0.72, 1.84, winFrontY, wz, 1, 0);
+      addBox(0.16, 0.68, 0.58, 1.85, winFrontY, wz, 0, 2);
+      addCyl(0.36, 0.36, 0.14, 16, 1.84, winFrontY + 0.39, wz, 1, 0, 0, 0, Math.PI * 0.5);
+      addCyl(0.29, 0.29, 0.16, 16, 1.85, winFrontY + 0.39, wz, 0, 2, 0, 0, Math.PI * 0.5);
+      addBox(0.22, 0.10, 0.82, 1.88, winFrontY - 0.42, wz, 1, 0);
     });
 
     // =========================================================================
@@ -1390,6 +1395,7 @@
       if (!cachedAtlasTexture) {
         const canvas = this.getAtlasCanvas();
         cachedAtlasTexture = new THREE.CanvasTexture(canvas);
+        cachedAtlasTexture.format = THREE.RGBAFormat;
         cachedAtlasTexture.anisotropy = 4;
         cachedAtlasTexture.needsUpdate = true;
       }
