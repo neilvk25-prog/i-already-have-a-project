@@ -135,6 +135,59 @@
       downloadBlob(blob, filename);
     },
 
+    // Export Mesh with embedded PBR Texture Atlas to Binary glTF (.glb) - Ideal for Xogot / Godot 4 on iPad
+    exportGLB: function(mesh, filename = 'medieval_guildhall.glb') {
+      if (!mesh || !mesh.geometry) return;
+      if (!THREE.GLTFExporter) {
+        alert('GLTFExporter is not loaded.');
+        return;
+      }
+
+      // Clone only the main mesh (without wireframe or normal helper children) so the exported GLB is clean for Xogot
+      const exportMat = (window.MedievalHouseBuilder && mesh.material && mesh.material.map)
+        ? window.MedievalHouseBuilder.createMaterial({ flatShading: false, wireframe: false })
+        : mesh.material.clone();
+
+      const cleanMesh = new THREE.Mesh(mesh.geometry.clone(), exportMat);
+      cleanMesh.name = 'MedievalGuildhall';
+      cleanMesh.position.set(0, 0, 0);
+      cleanMesh.rotation.set(0, 0, 0);
+      cleanMesh.scale.set(1, 1, 1);
+      cleanMesh.updateMatrixWorld(true);
+
+      const exporter = new THREE.GLTFExporter();
+      exporter.parse(
+        cleanMesh,
+        function(result) {
+          if (result instanceof ArrayBuffer) {
+            const blob = new Blob([result], { type: 'model/gltf-binary' });
+            downloadBlob(blob, filename);
+          } else {
+            const output = JSON.stringify(result, null, 2);
+            const blob = new Blob([output], { type: 'application/json' });
+            downloadBlob(blob, filename.replace(/\.glb$/i, '.gltf'));
+          }
+          cleanMesh.geometry.dispose();
+        },
+        {
+          binary: true,
+          embedImages: true,
+          onlyVisible: true
+        }
+      );
+    },
+
+    // Export 2048x2048 UV Texture Atlas as PNG
+    exportAtlasPNG: function(filename = 'medieval_guildhall_atlas.png') {
+      if (!window.MedievalHouseBuilder) return;
+      const canvas = window.MedievalHouseBuilder.getAtlasCanvas();
+      canvas.toBlob(function(blob) {
+        if (blob) {
+          downloadBlob(blob, filename);
+        }
+      }, 'image/png');
+    },
+
     // Parse OBJ file text into a THREE.BufferGeometry
     parseOBJ: function(text) {
       const positions = [];

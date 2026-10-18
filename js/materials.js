@@ -195,6 +195,15 @@
       const flatShading = options.flatShading || false;
 
       switch (type) {
+        case 'medievalAtlas':
+          if (window.MedievalHouseBuilder) {
+            return window.MedievalHouseBuilder.createMaterial({
+              flatShading: flatShading,
+              wireframe: wireframe
+            });
+          }
+          break;
+
         case 'hologram':
           return createHologramMaterial();
 

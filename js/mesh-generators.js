@@ -253,6 +253,11 @@
     },
     primitiveBox: function(params = {}) {
       return new THREE.BoxGeometry(2.5, 2.5, 2.5, 12, 12, 12);
+    },
+
+    // 11. Medieval Guildhall / Manor House (Textured for Xogot Engine)
+    guildhallHouse: function() {
+      return window.MedievalHouseBuilder.buildGeometry();
     }
   };
 
