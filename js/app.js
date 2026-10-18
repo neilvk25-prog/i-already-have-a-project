@@ -316,7 +316,10 @@
         wireframe: true,
         transparent: true,
         opacity: 0.25,
-        depthTest: true
+        depthTest: true,
+        polygonOffset: true,
+        polygonOffsetFactor: -1,
+        polygonOffsetUnits: -1
       });
       wireframeMesh = new THREE.Mesh(activeMesh.geometry, wireMat);
       activeMesh.add(wireframeMesh);

@@ -1085,15 +1085,15 @@
       }
     }
 
-    // Corner Quoin Pillars (proud of main walls so they never Z-fight with wall faces)
+    // Corner Quoin Pillars (at true exterior corners only, proud of walls)
     const quoinCorners = [
       [-1.92, 1.37],
-      [0.24, 1.37],
       [1.82, 1.37],
-      [1.82, -1.37],
       [-1.92, -1.37],
       [-1.16, -1.65],
-      [0.66, -1.65]
+      [0.66, -1.65],
+      [2.96, -0.21],
+      [2.96, -1.43]
     ];
     quoinCorners.forEach(([qx, qz]) => {
       const maxK = cutaway ? 4 : 6;
@@ -1147,13 +1147,13 @@
       addBox(0.20, 0.26, 0.30, doorX, 0.18, 1.61, 3, 1);
     }
 
-    // 5-Step Wide Stone Entrance Staircase (non-overlapping stacked steps)
+    // 5-Step Wide Stone Entrance Staircase (cleanly between balustrades and in front of pilasters)
     for (let s = 0; s < 5; s++) {
-      const stepH = 0.09;
-      const stepD = 0.72 - s * 0.12;
-      const stepY = -1.515 + s * stepH;
-      const stepZ = doorZ + 0.18 + stepD * 0.5;
-      addBox(1.36, stepH, stepD, doorX, stepY, stepZ, 1, 0);
+      const stepH = 0.085;
+      const stepD = 0.68 - s * 0.12;
+      const stepY = -1.515 + s * 0.09;
+      const stepZ = 1.69 + stepD * 0.5;
+      addBox(1.24, stepH, stepD, doorX, stepY, stepZ, 1, 0);
     }
 
     // Stepped Stone Balustrades & Newel Posts flanking stairs
@@ -1460,8 +1460,8 @@
     // =========================================================================
     // 10. FLOWER PLANTERS, CRATES, BARRELS & COURTYARD NOTICE BOARD
     // =========================================================================
-    addBox(0.76, 0.28, 0.34, 0.98, -1.42, 1.62, 1, 0);
-    addBox(0.68, 0.20, 0.26, 0.98, -1.18, 1.62, 2, 3);
+    addBox(0.66, 0.28, 0.34, 0.98, -1.42, 1.62, 1, 0);
+    addBox(0.58, 0.20, 0.26, 0.98, -1.18, 1.62, 2, 3);
 
     [0.48, 1.48].forEach(px => {
       addBox(0.30, 0.34, 0.30, px, -1.39, 1.64, 1, 0);
