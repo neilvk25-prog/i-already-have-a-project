@@ -127,6 +127,9 @@
       }
 
       output += 'endsolid MeshCraftModel\n';
+      if (geom !== mesh.geometry) {
+        geom.dispose();
+      }
 
       const blob = new Blob([output], { type: 'text/plain;charset=utf-8' });
       downloadBlob(blob, filename);
