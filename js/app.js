@@ -98,7 +98,7 @@
     setupFloor();
 
     // 8. Sculpt Engine
-    sculptEngine = new SculptEngine(scene, camera, renderer, () => activeMesh);
+    sculptEngine = new SculptEngine(scene, camera, renderer, () => activeMesh, controls);
 
     // 9. Build Initial Mesh
     loadPreset('torusKnot');
@@ -620,7 +620,6 @@
       sculptToggle.addEventListener('change', (e) => {
         const active = e.target.checked;
         sculptEngine.setEnabled(active);
-        controls.enabled = !active; // disable orbit controls while sculpting
         if (sculptPanel) sculptPanel.style.display = active ? 'block' : 'none';
       });
     }
