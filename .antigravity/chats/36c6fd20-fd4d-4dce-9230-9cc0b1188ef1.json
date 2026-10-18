@@ -28,6 +28,18 @@
       "created_at": "2026-10-18T14:54:21.805Z",
       "sender": "ios",
       "is_cancelled": true
+    },
+    {
+      "id": "f02b4009-121e-4146-b5dc-28c44cb6aa63",
+      "role": "user",
+      "content": "I attached an image: images/photo-1792335789-1.jpg.\n\nCan you build this house in 3d which I can use in xogot on iPad. I need to see the preview",
+      "status": "pending",
+      "model": "gemini-4-argon-high",
+      "client_type": "gemini-bridge",
+      "parent_message_id": null,
+      "created_at": "2026-10-18T15:03:57.501Z",
+      "sender": "ios",
+      "is_cancelled": false
     }
   ]
 }
