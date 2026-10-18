@@ -828,7 +828,7 @@
   }
 
   // Build a custom pitched roof prism (gable along Z or X)
-  // Creates a solid dual-pitched roof with gable triangular end caps
+  // Creates a solid dual-pitched roof with gable triangular end caps and zero coplanar overlap
   function createGableRoof(width, height, length, axis = 'x', roofTileCol = 0, roofTileRow = 1, gableTileCol = 2, gableTileRow = 0) {
     const parts = [];
     const hw = width * 0.5;
@@ -836,94 +836,107 @@
     const slopeLen = Math.sqrt(hw * hw + height * height);
     const slopeAngle = Math.atan2(height, hw);
 
+    // Inset the triangular gable wall well inside the roof slopes & bargeboards so faces never Z-fight
+    const gableInsetW = Math.max(0.1, hw - 0.16);
+    const gableInsetH = Math.max(0.1, height - 0.10);
+    const gableDepth = Math.max(0.1, length - 0.28);
+
     if (axis === 'x') {
       // Ridge runs along X axis (length = X span, width = Z span)
-      // Front slope (+Z)
+      // Elevate slopes by +0.05 in Y so they sit cleanly above the gable prism
       const frontSlope = new THREE.BoxGeometry(length, 0.08, slopeLen);
       mapUVToTile(frontSlope, roofTileCol, roofTileRow);
       frontSlope.rotateX(slopeAngle);
-      frontSlope.translate(0, height * 0.5, hw * 0.5);
+      frontSlope.translate(0, height * 0.5 + 0.05, hw * 0.5);
       parts.push(frontSlope);
 
-      // Back slope (-Z)
       const backSlope = new THREE.BoxGeometry(length, 0.08, slopeLen);
       mapUVToTile(backSlope, roofTileCol, roofTileRow);
       backSlope.rotateX(-slopeAngle);
-      backSlope.translate(0, height * 0.5, -hw * 0.5);
+      backSlope.translate(0, height * 0.5 + 0.05, -hw * 0.5);
       parts.push(backSlope);
 
-      // Gable triangular walls at -X and +X
+      // Ridge timber cap along top peak
+      const ridgeCap = new THREE.BoxGeometry(length + 0.06, 0.12, 0.12);
+      mapUVToTile(ridgeCap, 3, 0);
+      ridgeCap.translate(0, height + 0.06, 0);
+      parts.push(ridgeCap);
+
+      // Gable triangular walls at -X and +X (inset from slopes and bargeboards)
       const shape = new THREE.Shape();
-      shape.moveTo(-hw + 0.08, 0);
-      shape.lineTo(hw - 0.08, 0);
-      shape.lineTo(0, height - 0.04);
+      shape.moveTo(-gableInsetW, 0);
+      shape.lineTo(gableInsetW, 0);
+      shape.lineTo(0, gableInsetH);
       shape.closePath();
 
-      const extrudeSettings = { depth: length - 0.16, bevelEnabled: false };
+      const extrudeSettings = { depth: gableDepth, bevelEnabled: false };
       const gableGeo = new THREE.ExtrudeGeometry(shape, extrudeSettings);
-      // Normalize UVs of ExtrudeGeometry to [0,1] before mapping to tile
-      normalizePlanarUVs(gableGeo, hw * 2, height);
+      normalizePlanarUVs(gableGeo, gableInsetW * 2, gableInsetH);
       mapUVToTile(gableGeo, gableTileCol, gableTileRow);
       gableGeo.rotateY(Math.PI * 0.5);
-      gableGeo.translate(-(length - 0.16) * 0.5, 0, 0);
+      gableGeo.translate(-gableDepth * 0.5, 0, 0);
       parts.push(gableGeo);
 
-      // Timber bargeboards along gable edges
-      [-hl + 0.04, hl - 0.04].forEach(gx => {
-        const leftBoard = new THREE.BoxGeometry(0.1, 0.12, slopeLen + 0.08);
+      // Timber bargeboards along gable outer edges (offset cleanly outside the roof length)
+      [-hl - 0.03, hl + 0.03].forEach(gx => {
+        const leftBoard = new THREE.BoxGeometry(0.08, 0.13, slopeLen + 0.06);
         mapUVToTile(leftBoard, 3, 0);
         leftBoard.rotateX(slopeAngle);
-        leftBoard.translate(gx, height * 0.5, hw * 0.5);
+        leftBoard.translate(gx, height * 0.5 + 0.05, hw * 0.5);
         parts.push(leftBoard);
 
-        const rightBoard = new THREE.BoxGeometry(0.1, 0.12, slopeLen + 0.08);
+        const rightBoard = new THREE.BoxGeometry(0.08, 0.13, slopeLen + 0.06);
         mapUVToTile(rightBoard, 3, 0);
         rightBoard.rotateX(-slopeAngle);
-        rightBoard.translate(gx, height * 0.5, -hw * 0.5);
+        rightBoard.translate(gx, height * 0.5 + 0.05, -hw * 0.5);
         parts.push(rightBoard);
       });
     } else {
       // Ridge runs along Z axis (width = X span, length = Z span)
-      // Left slope (-X)
       const leftSlope = new THREE.BoxGeometry(slopeLen, 0.08, length);
       mapUVToTile(leftSlope, roofTileCol, roofTileRow);
       leftSlope.rotateZ(slopeAngle);
-      leftSlope.translate(-hw * 0.5, height * 0.5, 0);
+      leftSlope.translate(-hw * 0.5, height * 0.5 + 0.05, 0);
       parts.push(leftSlope);
 
-      // Right slope (+X)
       const rightSlope = new THREE.BoxGeometry(slopeLen, 0.08, length);
       mapUVToTile(rightSlope, roofTileCol, roofTileRow);
       rightSlope.rotateZ(-slopeAngle);
-      rightSlope.translate(hw * 0.5, height * 0.5, 0);
+      rightSlope.translate(hw * 0.5, height * 0.5 + 0.05, 0);
       parts.push(rightSlope);
 
-      // Gable triangular walls along Z
+      // Ridge timber cap along Z peak
+      const ridgeCap = new THREE.BoxGeometry(0.12, 0.12, length + 0.06);
+      mapUVToTile(ridgeCap, 3, 0);
+      ridgeCap.translate(0, height + 0.06, 0);
+      parts.push(ridgeCap);
+
+      // Gable triangular walls along Z (inset from slopes and bargeboards)
       const shape = new THREE.Shape();
-      shape.moveTo(-hw + 0.08, 0);
-      shape.lineTo(hw - 0.08, 0);
-      shape.lineTo(0, height - 0.04);
+      shape.moveTo(-gableInsetW, 0);
+      shape.lineTo(gableInsetW, 0);
+      shape.lineTo(0, gableInsetH);
       shape.closePath();
 
-      const extrudeSettings = { depth: length - 0.16, bevelEnabled: false };
+      const extrudeSettings = { depth: gableDepth, bevelEnabled: false };
       const gableGeo = new THREE.ExtrudeGeometry(shape, extrudeSettings);
-      normalizePlanarUVs(gableGeo, hw * 2, height);
+      normalizePlanarUVs(gableGeo, gableInsetW * 2, gableInsetH);
       mapUVToTile(gableGeo, gableTileCol, gableTileRow);
-      gableGeo.translate(0, 0, -(length - 0.16) * 0.5);
+      gableGeo.translate(0, 0, -gableDepth * 0.5);
       parts.push(gableGeo);
 
-      // Front & back timber bargeboards
-      [hl - 0.04, -hl + 0.04].forEach(gz => {
-        const lBoard = new THREE.BoxGeometry(slopeLen + 0.08, 0.12, 0.1);
+      // Front & back timber bargeboards (offset cleanly outside length)
+      [hl + 0.03, -hl - 0.03].forEach(gz => {
+        const lBoard = new THREE.BoxGeometry(slopeLen + 0.06, 0.13, 0.08);
         mapUVToTile(lBoard, 3, 0);
         lBoard.rotateZ(slopeAngle);
-        lBoard.translate(-hw * 0.5, height * 0.5, gz);
+        lBoard.translate(-hw * 0.5, height * 0.5 + 0.05, gz);
         parts.push(lBoard);
 
-        const rBoard = new THREE.BoxGeometry(slopeLen + 0.08, 0.12, 0.1);
+        const rBoard = new THREE.BoxGeometry(slopeLen + 0.06, 0.13, 0.08);
         mapUVToTile(rBoard, 3, 0);
         rBoard.rotateZ(-slopeAngle);
-        rBoard.translate(hw * 0.5, height * 0.5, gz);
+        rBoard.translate(hw * 0.5, height * 0.5 + 0.05, gz);
         parts.push(rBoard);
       });
     }
@@ -945,8 +958,7 @@
 
   // Build the complete Medieval Guildhall / Manor House geometry matching both the
   // Architectural Blueprint (Rear, Left, Right, Front Elevations & Ground Floor Plan)
-  // and the Isometric Reference Artwork.
-  // Scale mapping: 1 Three.js unit ≈ 3.0 meters (Full width ~18m -> ~6.0 units, Tower apex 16.2m -> ~5.4 units)
+  // and the Isometric Reference Artwork, with zero coplanar Z-fighting.
   function buildGuildhallGeometry(options = {}) {
     const cutaway = Boolean(options.cutaway);
     const parts = [];
@@ -971,111 +983,124 @@
       parts.push(g);
     }
 
-    // Helper for stone-framed arched or casement window on any wall
+    // Helper for stone-framed arched or casement window on any wall (with zero Z-fighting)
+    // Uses distinct depths for stone surround vs glass and offsets arch top slightly forward
     function addWallWindow(x, y, z, w, h, axis = 'z', isArched = true) {
       if (axis === 'z') {
-        addBox(w + 0.14, h + 0.10, 0.14, x, y, z, 1, 0); // Stone surround
-        addBox(w, h, 0.16, x, y, z, 0, 2); // Leaded lattice glass
+        addBox(w + 0.14, h + 0.08, 0.12, x, y, z, 1, 0); // Stone surround
+        addBox(w, h - 0.02, 0.18, x, y, z, 0, 2); // Leaded lattice glass (proud by 0.03 on each side)
         if (isArched) {
-          addCyl((w + 0.14) * 0.5, (w + 0.14) * 0.5, 0.14, 14, x, y + h * 0.5, z, 1, 0, Math.PI * 0.5, 0, 0);
-          addCyl(w * 0.5, w * 0.5, 0.16, 14, x, y + h * 0.5, z, 0, 2, Math.PI * 0.5, 0, 0);
+          // Use half-cylinder arch (0 to PI) so it sits strictly above y + h*0.5 without overlapping the box
+          const archStone = new THREE.CylinderGeometry((w + 0.14) * 0.5, (w + 0.14) * 0.5, 0.12, 16, 1, false, 0, Math.PI);
+          mapUVToTile(archStone, 1, 0);
+          archStone.rotateZ(Math.PI * 0.5);
+          archStone.rotateY(Math.PI * 0.5);
+          archStone.translate(x, y + (h + 0.08) * 0.5, z);
+          parts.push(archStone);
+
+          const archGlass = new THREE.CylinderGeometry(w * 0.5, w * 0.5, 0.18, 16, 1, false, 0, Math.PI);
+          mapUVToTile(archGlass, 0, 2);
+          archGlass.rotateZ(Math.PI * 0.5);
+          archGlass.rotateY(Math.PI * 0.5);
+          archGlass.translate(x, y + (h + 0.08) * 0.5, z);
+          parts.push(archGlass);
         }
-        addBox(w + 0.24, 0.09, 0.22, x, y - h * 0.5 - 0.04, z, 1, 0); // Sill
+        addBox(w + 0.24, 0.09, 0.24, x, y - h * 0.5 - 0.08, z, 1, 0); // Window sill below surround
       } else {
-        addBox(0.14, h + 0.10, w + 0.14, x, y, z, 1, 0);
-        addBox(0.16, h, w, x, y, z, 0, 2);
+        addBox(0.12, h + 0.08, w + 0.14, x, y, z, 1, 0);
+        addBox(0.18, h - 0.02, w, x, y, z, 0, 2);
         if (isArched) {
-          addCyl((w + 0.14) * 0.5, (w + 0.14) * 0.5, 0.14, 14, x, y + h * 0.5, z, 1, 0, 0, 0, Math.PI * 0.5);
-          addCyl(w * 0.5, w * 0.5, 0.16, 14, x, y + h * 0.5, z, 0, 2, 0, 0, Math.PI * 0.5);
+          const archStone = new THREE.CylinderGeometry((w + 0.14) * 0.5, (w + 0.14) * 0.5, 0.12, 16, 1, false, 0, Math.PI);
+          mapUVToTile(archStone, 1, 0);
+          archStone.rotateZ(Math.PI * 0.5);
+          archStone.translate(x, y + (h + 0.08) * 0.5, z);
+          parts.push(archStone);
+
+          const archGlass = new THREE.CylinderGeometry(w * 0.5, w * 0.5, 0.18, 16, 1, false, 0, Math.PI);
+          mapUVToTile(archGlass, 0, 2);
+          archGlass.rotateZ(Math.PI * 0.5);
+          archGlass.translate(x, y + (h + 0.08) * 0.5, z);
+          parts.push(archGlass);
         }
-        addBox(0.22, 0.09, w + 0.24, x, y - h * 0.5 - 0.04, z, 1, 0);
+        addBox(0.24, 0.09, w + 0.24, x, y - h * 0.5 - 0.08, z, 1, 0);
       }
     }
 
     // =========================================================================
-    // 1. COURTYARD BASE PLINTH & FLAGSTONE PAVING (18m × 14.5m Blueprint Footprint)
+    // 1. COURTYARD BASE PLINTH & FLAGSTONE PAVING (Stacked cleanly, no overlap)
     // =========================================================================
-    addBox(6.8, 0.18, 5.4, 0.0, -1.65, 0.1, 0, 3);
-    addBox(6.92, 0.08, 5.52, 0.0, -1.72, 0.1, 1, 0);
+    addBox(6.8, 0.16, 5.4, 0.0, -1.64, 0.1, 0, 3);
+    addBox(6.96, 0.08, 5.56, 0.0, -1.76, 0.1, 1, 0);
 
     // =========================================================================
     // 2. GROUND FLOOR STONE HALL & INTERIOR FLOOR PLAN (4.5m Blueprint Height)
     // =========================================================================
-    const gfY = -0.82;
-    const gfH = 1.50;
+    const gfY = -0.83;
+    const gfH = 1.46; // spans y = -1.56 to -0.10
     const wallT = 0.18;
 
     if (!cutaway) {
-      // Solid exterior stone mass when viewing full building
+      // Main Stone Body (x: -1.925 to +1.825, z: -1.375 to +1.375, y: -1.56 to -0.10)
       addBox(3.75, gfH, 2.75, -0.05, gfY, 0.0, 0, 0);
-      // Rear Elevation projecting stone bay under rear cross-gable
-      addBox(1.85, gfH, 0.36, -0.25, gfY, -1.48, 0, 0);
-      // Stone belt course / cornice moulding between Ground Floor & Upper Floor
-      addBox(3.92, 0.14, 2.92, -0.05, -0.03, 0.0, 1, 0);
-      addBox(2.02, 0.14, 0.44, -0.25, -0.03, -1.50, 1, 0);
+      // Rear Elevation projecting stone bay (z: -1.66 to -1.375, contiguous with rear wall)
+      addBox(1.85, gfH, 0.285, -0.25, gfY, -1.5175, 0, 0);
+      // Stone belt course / cornice moulding between Ground Floor & Upper Floor (y: -0.10 to +0.04)
+      addBox(3.94, 0.14, 2.94, -0.05, -0.03, 0.0, 1, 0);
+      addBox(2.02, 0.14, 0.34, -0.25, -0.03, -1.56, 1, 0);
     } else {
       // BLUEPRINT GROUND FLOOR PLAN CUTAWAY MODE (14.5m × 11m Interior Layout)
-      const cutH = 1.15;
-      const cutY = -0.99;
-      // Interior wood/flagstone flooring
-      addBox(3.65, 0.06, 2.68, -0.05, -1.54, 0.0, 0, 3);
+      const cutH = 1.12;
+      const cutY = -0.94; // spans y = -1.50 to -0.38
+      // Interior flagstone flooring (y: -1.56 to -1.50)
+      addBox(3.60, 0.06, 2.60, -0.05, -1.53, 0.0, 0, 3);
       // Outer perimeter stone walls with doorway openings
-      // Front wall (-X left of entrance, +X right of entrance)
       addBox(0.95, cutH, wallT, -1.45, cutY, 1.28, 0, 0);
       addBox(1.65, cutH, wallT, 0.98, cutY, 1.28, 0, 0);
-      // Rear wall (-Z)
       addBox(3.75, cutH, wallT, -0.05, cutY, -1.28, 0, 0);
-      // Left wall (-X) with 2 window bays
-      addBox(wallT, cutH, 2.75, -1.84, cutY, 0.0, 0, 0);
-      // Right wall (+X) with east bay projection
-      addBox(wallT, cutH, 2.75, 1.74, cutY, 0.0, 0, 0);
-      // East hexagonal bay window projection on Ground Floor Plan
-      addBox(0.38, cutH, 0.78, 1.98, cutY, -0.58, 0, 0);
+      addBox(wallT, cutH, 2.39, -1.84, cutY, 0.0, 0, 0);
+      addBox(wallT, cutH, 2.39, 1.74, cutY, 0.0, 0, 0);
+      // East bay window projection on Ground Floor Plan
+      addBox(0.36, cutH, 0.78, 2.01, cutY, -0.58, 0, 0);
 
-      // Interior Partition Walls matching Ground Floor Plan:
-      // Left rooms longitudinal wall & cross partition
-      addBox(0.12, cutH * 0.92, 2.55, -0.92, cutY, 0.0, 2, 0);
-      addBox(0.88, cutH * 0.92, 0.12, -1.38, cutY, 0.12, 2, 0);
-      // Right rooms longitudinal wall & cross partition
-      addBox(0.12, cutH * 0.92, 2.55, 0.48, cutY, 0.0, 2, 0);
-      addBox(1.22, cutH * 0.92, 0.12, 1.10, cutY, -0.10, 2, 0);
-      // Central Great Hall rear partition wall separating foyer from stairwell
-      addBox(1.38, cutH * 0.92, 0.12, -0.22, cutY, -0.42, 2, 0);
+      // Interior Partition Walls (non-overlapping T-junctions)
+      addBox(0.12, cutH * 0.90, 2.38, -0.92, cutY, 0.0, 2, 0);
+      addBox(0.76, cutH * 0.90, 0.12, -1.37, cutY, 0.12, 2, 0);
+      addBox(0.12, cutH * 0.90, 2.38, 0.48, cutY, 0.0, 2, 0);
+      addBox(1.10, cutH * 0.90, 0.12, 1.10, cutY, -0.10, 2, 0);
+      addBox(1.26, cutH * 0.90, 0.12, -0.22, cutY, -0.42, 2, 0);
 
-      // 4 Great Hall Corner Stone Columns (shown in Ground Floor Plan around central hall)
+      // 4 Great Hall Corner Stone Columns
       [[-0.76, 1.05], [0.32, 1.05], [-0.76, -0.26], [0.32, -0.26]].forEach(([cx, cz]) => {
-        addCyl(0.08, 0.09, cutH, 10, cx, cutY, cz, 1, 0);
-        addBox(0.20, 0.10, 0.20, cx, -1.50, cz, 1, 0);
+        addCyl(0.08, 0.09, cutH - 0.10, 10, cx, cutY + 0.05, cz, 1, 0);
+        addBox(0.20, 0.10, 0.20, cx, -1.45, cz, 1, 0);
       });
 
-      // Rear-Center U-Shaped Switchback Staircase (shown in Ground Floor Plan)
+      // Rear-Center U-Shaped Switchback Staircase
       for (let s = 0; s < 6; s++) {
-        addBox(0.38, 0.08, 0.12, -0.48, -1.48 + s * 0.09, -0.62 - s * 0.10, 1, 3);
+        addBox(0.38, 0.08, 0.11, -0.48, -1.46 + s * 0.09, -0.58 - s * 0.10, 1, 3);
       }
-      // Stair landing against rear wall
-      addBox(0.86, 0.08, 0.28, -0.26, -0.94, -1.12, 1, 3);
-      // Upper flight returning
+      addBox(0.84, 0.08, 0.24, -0.26, -0.92, -1.08, 1, 3);
       for (let s = 0; s < 5; s++) {
-        addBox(0.38, 0.08, 0.12, -0.04, -0.86 + s * 0.09, -0.96 + s * 0.10, 1, 3);
+        addBox(0.38, 0.08, 0.11, -0.04, -0.83 + s * 0.09, -0.92 + s * 0.10, 1, 3);
       }
     }
 
-    // Corner Quoin Pillars (alternating rusticated corner blocks on all 4 elevations)
+    // Corner Quoin Pillars (proud of main walls so they never Z-fight with wall faces)
     const quoinCorners = [
       [-1.92, 1.37],
       [0.24, 1.37],
       [1.82, 1.37],
       [1.82, -1.37],
       [-1.92, -1.37],
-      [-1.16, -1.64],
-      [0.66, -1.64]
+      [-1.16, -1.65],
+      [0.66, -1.65]
     ];
     quoinCorners.forEach(([qx, qz]) => {
       const maxK = cutaway ? 4 : 6;
       for (let k = 0; k < maxK; k++) {
-        const bw = (k % 2 === 0) ? 0.24 : 0.18;
-        const bd = (k % 2 === 0) ? 0.18 : 0.24;
-        addBox(bw, 0.23, bd, qx, -1.44 + k * 0.24, qz, 1, 0);
+        const bw = (k % 2 === 0) ? 0.26 : 0.20;
+        const bd = (k % 2 === 0) ? 0.20 : 0.26;
+        addBox(bw, 0.21, bd, qx, -1.43 + k * 0.23, qz, 1, 0);
       }
     });
 
@@ -1085,28 +1110,28 @@
     const doorX = -0.78;
     const doorZ = 1.46;
 
-    // Projecting Stone Entrance Portal Bay
-    addBox(1.52, cutaway ? 1.18 : 1.62, 0.34, doorX, cutaway ? -0.98 : -0.78, doorZ - 0.05, 1, 0);
+    // Projecting Stone Entrance Portal Bay (z: 1.375 to 1.575, contiguous with front wall)
+    addBox(1.52, cutaway ? 1.12 : 1.56, 0.20, doorX, cutaway ? -0.94 : -0.78, 1.475, 1, 0);
 
-    // Left & Right Classical Fluted Pilasters flanking the entrance
+    // Left & Right Classical Fluted Pilasters flanking the entrance (front face at z = 1.68)
     [-0.62, 0.62].forEach(dx => {
-      addBox(0.22, cutaway ? 1.10 : 1.35, 0.26, doorX + dx, cutaway ? -1.00 : -0.88, doorZ + 0.08, 1, 0);
-      addBox(0.28, 0.14, 0.32, doorX + dx, -1.50, doorZ + 0.08, 1, 0);
+      addBox(0.22, cutaway ? 0.96 : 1.22, 0.22, doorX + dx, cutaway ? -0.94 : -0.81, 1.57, 1, 0);
+      addBox(0.28, 0.14, 0.28, doorX + dx, -1.49, 1.57, 1, 0);
       if (!cutaway) {
-        addBox(0.30, 0.15, 0.34, doorX + dx, -0.16, doorZ + 0.08, 1, 0);
+        addBox(0.30, 0.14, 0.30, doorX + dx, -0.13, 1.57, 1, 0);
       }
     });
 
-    // Recessed Wooden Double Doors (Tile 2,1)
-    addBox(0.96, 1.15, 0.12, doorX, -0.96, doorZ + 0.06, 2, 1);
+    // Wooden Double Doors (front face at z = 1.62, cleanly proud of portal face 1.575!)
+    addBox(0.96, 1.12, 0.08, doorX, -0.98, 1.58, 2, 1);
 
     if (!cutaway) {
-      // Semicircular Carved Stone Tympanum above Door (Tile 3,1)
-      const tympCyl = new THREE.CylinderGeometry(0.48, 0.48, 0.14, 24, 1, false, 0, Math.PI);
+      // Semicircular Carved Stone Tympanum above Door (sits above door top y = -0.42, front face at z = 1.63)
+      const tympCyl = new THREE.CylinderGeometry(0.48, 0.48, 0.10, 24, 1, false, 0, Math.PI);
       mapUVToTile(tympCyl, 3, 1);
       tympCyl.rotateZ(Math.PI * 0.5);
       tympCyl.rotateY(Math.PI * 0.5);
-      tympCyl.translate(doorX, -0.38, doorZ + 0.08);
+      tympCyl.translate(doorX, -0.40, 1.58);
       parts.push(tympCyl);
 
       // Outer Moulded Stone Arch Ring (Voussoirs) over Tympanum
@@ -1115,69 +1140,69 @@
         const a = Math.PI * (i + 0.5) / archSegments;
         const r = 0.56;
         const vx = doorX - Math.cos(a) * r;
-        const vy = -0.38 + Math.sin(a) * r;
-        addBox(0.16, 0.16, 0.28, vx, vy, doorZ + 0.12, 1, 0, 0, 0, a - Math.PI * 0.5);
+        const vy = -0.40 + Math.sin(a) * r;
+        addBox(0.15, 0.15, 0.24, vx, vy, 1.59, 1, 0, 0, 0, a - Math.PI * 0.5);
       }
       // Central Keystone with carved crest at top of arch
-      addBox(0.20, 0.26, 0.34, doorX, 0.20, doorZ + 0.15, 3, 1);
+      addBox(0.20, 0.26, 0.30, doorX, 0.18, 1.61, 3, 1);
     }
 
-    // 5-Step Wide Stone Entrance Staircase
+    // 5-Step Wide Stone Entrance Staircase (non-overlapping stacked steps)
     for (let s = 0; s < 5; s++) {
       const stepH = 0.09;
       const stepD = 0.72 - s * 0.12;
-      const stepY = -1.52 + s * stepH;
-      const stepZ = doorZ + 0.22 + stepD * 0.5;
+      const stepY = -1.515 + s * stepH;
+      const stepZ = doorZ + 0.18 + stepD * 0.5;
       addBox(1.36, stepH, stepD, doorX, stepY, stepZ, 1, 0);
     }
 
     // Stepped Stone Balustrades & Newel Posts flanking stairs
-    [-0.72, 0.72].forEach(sx => {
-      addBox(0.22, 0.48, 0.22, doorX + sx, -1.32, doorZ + 0.90, 1, 0);
-      addBox(0.26, 0.08, 0.26, doorX + sx, -1.06, doorZ + 0.90, 1, 0);
-      addBox(0.16, 0.12, 0.78, doorX + sx, -1.02, doorZ + 0.52, 1, 0, 0.46, 0, 0);
+    [-0.74, 0.74].forEach(sx => {
+      addBox(0.22, 0.44, 0.22, doorX + sx, -1.34, doorZ + 0.88, 1, 0);
+      addBox(0.26, 0.08, 0.26, doorX + sx, -1.08, doorZ + 0.88, 1, 0);
+      addBox(0.16, 0.12, 0.76, doorX + sx, -1.02, doorZ + 0.50, 1, 0, 0.46, 0, 0);
       for (let b = 0; b < 4; b++) {
-        addCyl(0.04, 0.05, 0.28, 8, doorX + sx, -1.24 + b * 0.08, doorZ + 0.76 - b * 0.15, 1, 0);
+        addCyl(0.04, 0.05, 0.26, 8, doorX + sx, -1.25 + b * 0.08, doorZ + 0.74 - b * 0.15, 1, 0);
       }
     });
 
     // Warm Glowing Wall Lanterns flanking the entrance arch
-    [-0.64, 0.64].forEach(lx => {
-      addBox(0.05, 0.05, 0.18, doorX + lx, -0.68, doorZ + 0.25, 3, 3, 0, 0, 0, { u: 0, v: 0.5, uw: 0.5, vh: 0.5 });
-      addCyl(0.08, 0.06, 0.18, 6, doorX + lx, -0.72, doorZ + 0.34, 3, 3, 0, 0, 0, { u: 0.5, v: 0, uw: 0.5, vh: 0.5 });
-      addCyl(0.01, 0.10, 0.08, 6, doorX + lx, -0.60, doorZ + 0.34, 3, 3, 0, 0, 0, { u: 0, v: 0.5, uw: 0.5, vh: 0.5 });
+    [-0.62, 0.62].forEach(lx => {
+      addBox(0.05, 0.05, 0.16, doorX + lx, -0.68, 1.72, 3, 3, 0, 0, 0, { u: 0, v: 0.5, uw: 0.5, vh: 0.5 });
+      addCyl(0.08, 0.06, 0.18, 6, doorX + lx, -0.72, 1.80, 3, 3, 0, 0, 0, { u: 0.5, v: 0, uw: 0.5, vh: 0.5 });
+      addCyl(0.01, 0.10, 0.08, 6, doorX + lx, -0.59, 1.80, 3, 3, 0, 0, 0, { u: 0, v: 0.5, uw: 0.5, vh: 0.5 });
     });
 
     // =========================================================================
     // 4. GROUND FLOOR WINDOWS ON ALL 4 ELEVATIONS (Blueprint Matching)
     // =========================================================================
     const winFrontY = -0.88;
-    // Front Right Arched Window (+Z)
-    addWallWindow(0.98, winFrontY, 1.38, 0.62, 0.68, 'z', true);
+    // Front Right Arched Window (+Z wall face is at 1.375; place window centered at 1.40)
+    addWallWindow(0.98, winFrontY, 1.40, 0.62, 0.66, 'z', true);
 
-    // Right Side Wall (+X): 2 Large Arched Windows + Pilasters between them (Right Side Elevation)
-    [-0.58, 0.58].forEach(wz => {
-      addWallWindow(1.84, winFrontY, wz, 0.58, 0.68, 'x', true);
+    // Right Side Wall (+X wall face is at 1.825): 2 Large Arched Windows + Pilasters
+    [0.08, 0.82].forEach(wz => {
+      addWallWindow(1.85, winFrontY, wz, 0.52, 0.66, 'x', true);
     });
-    // Pilasters between Right Side ground floor windows (shown on Right Side Elevation)
-    [-1.12, 0.0, 1.12].forEach(pz => {
-      addBox(0.16, cutaway ? 1.12 : 1.44, 0.18, 1.84, cutaway ? -1.00 : -0.80, pz, 1, 0);
+    // Pilasters between Right Side ground floor windows
+    [-0.32, 0.45, 1.22].forEach(pz => {
+      addBox(0.14, cutaway ? 1.12 : 1.44, 0.16, 1.86, cutaway ? -0.94 : -0.82, pz, 1, 0);
     });
 
-    // Left Side Wall (-X): 2 Stone-Framed Rectangular Windows (shown on Left Side Elevation)
+    // Left Side Wall (-X wall face is at -1.925): 2 Stone-Framed Rectangular Windows
     [-0.56, 0.56].forEach(wz => {
-      addWallWindow(-1.92, -0.86, wz, 0.38, 0.52, 'x', false);
+      addWallWindow(-1.95, -0.86, wz, 0.38, 0.52, 'x', false);
     });
 
-    // Rear Wall (-Z): Stairwell & Rear Windows (shown on Ground Floor Plan & Rear Elevation)
-    addWallWindow(-1.42, -0.84, -1.38, 0.42, 0.52, 'z', false);
-    addWallWindow(-0.25, -0.84, -1.66, 0.46, 0.54, 'z', false);
+    // Rear Wall (-Z wall face is at -1.375, rear bay face is at -1.66)
+    addWallWindow(-1.46, -0.84, -1.40, 0.40, 0.52, 'z', false);
+    addWallWindow(-0.25, -0.84, -1.68, 0.46, 0.54, 'z', false);
 
-    // Tower Base Ground Floor Window on Right Side (+X) & Rear (-Z)
-    const towX = 2.38;
-    const towZ = -0.58;
-    addBox(1.32, cutaway ? 1.18 : 1.65, 1.32, towX, cutaway ? -0.98 : -0.75, towZ, 0, 0);
-    addWallWindow(towX + 0.66, -0.84, towZ, 0.38, 0.52, 'x', false);
+    // Tower Base Ground Floor (contiguous at x >= 1.825 so it never overlaps the main stone hall!)
+    const towX = 2.40;
+    const towZ = -0.82;
+    addBox(1.15, cutaway ? 1.12 : 1.46, 1.24, towX, cutaway ? -0.94 : gfY, towZ, 0, 0);
+    addWallWindow(towX + 0.59, -0.84, towZ, 0.38, 0.52, 'x', false);
 
     // =========================================================================
     // 5. LEFT SIDE OUTDOOR SHELTER / VERANDA (1.8m Width on Blueprint)
@@ -1186,41 +1211,38 @@
     const porchZ = 0.15;
 
     if (!cutaway) {
-      // Sloped Terracotta Lean-To Porch Roof (1.8m eaves to 4.5m wall plate)
-      const porchRoof = new THREE.BoxGeometry(1.42, 0.08, 2.75);
+      const porchRoof = new THREE.BoxGeometry(1.38, 0.08, 2.75);
       mapUVToTile(porchRoof, 0, 1);
       porchRoof.rotateZ(0.34);
-      porchRoof.translate(porchX, -0.02, porchZ);
+      porchRoof.translate(porchX - 0.04, 0.02, porchZ);
       parts.push(porchRoof);
     }
 
-    // Timber Porch Support Posts & Arched Brackets (shown in Rear, Left & Front Elevations)
+    // Timber Porch Support Posts & Arched Brackets
     [-1.08, -0.26, 0.56, 1.32].forEach(pz => {
-      addBox(0.12, 1.35, 0.12, porchX - 0.55, -0.90, pz, 3, 0);
-      addBox(0.18, 0.18, 0.18, porchX - 0.55, -1.50, pz, 1, 0); // Stone post base
+      addBox(0.12, 1.24, 0.12, porchX - 0.55, -0.82, pz, 3, 0);
+      addBox(0.18, 0.16, 0.18, porchX - 0.55, -1.48, pz, 1, 0);
       if (!cutaway) {
-        // Curved/angled timber knee braces on posts
-        addBox(0.08, 0.28, 0.08, porchX - 0.44, -0.34, pz, 3, 0, 0, 0, -0.65);
-        addBox(0.08, 0.26, 0.08, porchX - 0.55, -0.34, pz + 0.12, 3, 0, 0.65, 0, 0);
+        addBox(0.07, 0.26, 0.07, porchX - 0.42, -0.32, pz, 3, 0, 0, 0, -0.65);
+        addBox(0.07, 0.24, 0.07, porchX - 0.55, -0.32, pz + 0.12, 3, 0, 0.65, 0, 0);
       }
     });
     if (!cutaway) {
-      // Horizontal porch header beam & rear cross-beam (Rear Elevation)
-      addBox(0.14, 0.14, 2.65, porchX - 0.55, -0.22, porchZ, 3, 0);
-      addBox(1.15, 0.12, 0.12, porchX - 0.02, -0.22, -1.08, 3, 0);
-      addBox(1.15, 0.12, 0.12, porchX - 0.02, -0.22, 1.32, 3, 0);
+      addBox(0.14, 0.14, 2.65, porchX - 0.55, -0.15, porchZ, 3, 0);
+      addBox(1.02, 0.12, 0.12, porchX - 0.02, -0.15, -1.08, 3, 0);
+      addBox(1.02, 0.12, 0.12, porchX - 0.02, -0.15, 1.32, 3, 0);
     }
 
-    // Stone Water Trough / Fountain under Left Porch (Front Elevation & Reference)
-    addBox(0.46, 0.34, 0.86, porchX - 0.25, -1.38, -0.45, 1, 0);
-    addBox(0.36, 0.04, 0.74, porchX - 0.25, -1.21, -0.45, 3, 3, 0, 0, 0, { u: 0.5, v: 0, uw: 0.5, vh: 0.5 });
-    addBox(0.18, 0.24, 0.08, porchX + 0.02, -1.12, -0.45, 1, 0);
+    // Stone Water Trough / Fountain under Left Porch (water inset cleanly at y = -1.19)
+    addBox(0.46, 0.34, 0.86, porchX - 0.25, -1.39, -0.45, 1, 0);
+    addBox(0.36, 0.04, 0.74, porchX - 0.25, -1.19, -0.45, 3, 3, 0, 0, 0, { u: 0.5, v: 0, uw: 0.5, vh: 0.5 });
+    addBox(0.18, 0.24, 0.08, porchX - 0.02, -1.10, -0.45, 1, 0);
 
-    // Wooden Bench against Left Wall under Porch
-    addBox(0.32, 0.06, 1.05, -1.98, -1.28, 0.45, 1, 3);
-    addBox(0.06, 0.34, 1.05, -1.86, -1.12, 0.45, 1, 3);
-    addBox(0.28, 0.26, 0.08, -1.98, -1.42, 0.02, 3, 0);
-    addBox(0.28, 0.26, 0.08, -1.98, -1.42, 0.88, 3, 0);
+    // Wooden Bench against Left Wall (outside wall x = -1.925 so it never intersects wall)
+    addBox(0.30, 0.06, 1.05, -2.12, -1.28, 0.45, 1, 3);
+    addBox(0.06, 0.34, 1.05, -1.97, -1.08, 0.45, 1, 3);
+    addBox(0.26, 0.25, 0.08, -2.12, -1.435, 0.02, 3, 0);
+    addBox(0.26, 0.25, 0.08, -2.12, -1.435, 0.88, 3, 0);
 
     // Wooden Bollard Posts & Hanging Iron Chains around Left Courtyard
     const bollards = [
@@ -1229,8 +1251,8 @@
       [-2.08, 1.88]
     ];
     bollards.forEach(([bx, bz]) => {
-      addCyl(0.06, 0.065, 0.52, 8, bx, -1.32, bz, 3, 0);
-      addCyl(0.075, 0.06, 0.06, 8, bx, -1.04, bz, 3, 0);
+      addCyl(0.06, 0.065, 0.48, 8, bx, -1.32, bz, 3, 0);
+      addCyl(0.075, 0.06, 0.06, 8, bx, -1.05, bz, 3, 0);
     });
     addBox(0.56, 0.04, 0.04, -2.88, -1.22, 1.63, 3, 3, 0, -0.3, 0, { u: 0, v: 0.5, uw: 0.5, vh: 0.5 });
     addBox(0.56, 0.04, 0.04, -2.35, -1.22, 1.80, 3, 3, 0, -0.3, 0, { u: 0, v: 0.5, uw: 0.5, vh: 0.5 });
@@ -1239,63 +1261,67 @@
     if (!cutaway) {
       // =======================================================================
       // 6. SECOND FLOOR HALF-TIMBERED HALL, JETTIED CORBELS & BALCONY LOGGIA
+      // All volumes use contiguous non-overlapping X/Z bounds to prevent Z-fighting
       // =======================================================================
       const ufY = 0.65;
-      const ufH = 1.22;
+      const ufH = 1.22; // spans y = 0.04 to 1.26
 
-      // Left Half-Timbered Volume (slightly jettied on -X and -Z with stone corbels)
-      addBox(2.32, ufH, 2.86, -0.82, ufY, 0.02, 2, 0);
+      // Left Half-Timbered Volume (x: -1.98 to +0.22, z: -1.41 to +1.43)
+      addBox(2.20, ufH, 2.84, -0.88, ufY, 0.01, 2, 0);
 
-      // Left Side (-X) Jettied Overhang Corbel Brackets (7 corbels on Left Side Elevation)
+      // Left Side (-X) Jettied Overhang Corbel Brackets (y: -0.14 to +0.03)
       for (let c = 0; c < 7; c++) {
         const cz = -1.26 + c * 0.42;
-        addBox(0.18, 0.18, 0.10, -1.96, -0.02, cz, 1, 0);
+        addBox(0.16, 0.16, 0.10, -1.98, -0.05, cz, 1, 0);
       }
-      // Left Side (-X) Second Floor Central Casement Window (Left Side Elevation)
-      addWallWindow(-1.99, ufY, 0.02, 0.44, 0.54, 'x', false);
+      // Left Side (-X) Second Floor Central Casement Window (placed cleanly at x = -2.00)
+      addWallWindow(-2.00, ufY, 0.02, 0.44, 0.54, 'x', false);
 
-      // Rear Elevation (-Z) Projecting Half-Timbered Cross-Gable Wing & Corbels
-      addBox(1.96, ufH, 0.46, -0.25, ufY, -1.56, 2, 0);
-      // 6 Carved Corbel Brackets supporting Rear Jettied Gable (Rear Elevation)
+      // Rear Elevation (-Z) Projecting Half-Timbered Cross-Gable Wing (z: -1.77 to -1.41, contiguous!)
+      addBox(1.96, ufH, 0.36, -0.25, ufY, -1.59, 2, 0);
+      // 6 Carved Corbel Brackets supporting Rear Jettied Gable
       for (let c = 0; c < 6; c++) {
         const cx = -1.10 + c * 0.34;
-        addBox(0.10, 0.18, 0.18, cx, -0.02, -1.74, 1, 0);
+        addBox(0.10, 0.16, 0.16, cx, -0.05, -1.75, 1, 0);
       }
 
-      // Projecting Front Gable Bay over Entrance Portal (+Z)
-      addBox(1.58, ufH, 0.36, doorX, ufY, 1.42, 2, 0);
+      // Projecting Front Gable Bay over Entrance Portal (z: 1.43 to 1.61, contiguous!)
+      addBox(1.58, ufH, 0.18, doorX, ufY, 1.52, 2, 0);
 
-      // Ornate Golden Heraldic Coat of Arms Shield on Front Gable Wall
-      addBox(0.46, 0.52, 0.10, doorX, 0.68, 1.62, 3, 1);
-      addBox(1.66, 0.10, 0.42, doorX, 1.24, 1.44, 3, 0);
+      // Ornate Golden Heraldic Coat of Arms Shield on Front Gable Wall (front face of wall is 1.61)
+      addBox(0.46, 0.52, 0.08, doorX, 0.68, 1.66, 3, 1);
+      addBox(1.66, 0.09, 0.24, doorX, 1.21, 1.55, 3, 0);
 
-      // Right Second-Floor Open Arcaded Loggia / Balcony (2 Front Bays, 3 Right Side Bays)
-      addBox(1.55, ufH, 1.85, 0.95, ufY, -0.45, 2, 0);
-      addBox(0.55, 0.72, 0.10, 0.85, ufY, 0.48, 0, 2); // Warm interior window inside loggia
+      // Right Second-Floor Open Arcaded Loggia Inner Volume (x: +0.22 to +1.76, z: -1.39 to +0.45, contiguous!)
+      addBox(1.54, ufH, 1.84, 0.99, ufY, -0.47, 2, 0);
+      // Warm interior window inside loggia (wall face is at z = +0.45)
+      addBox(0.55, 0.72, 0.08, 0.88, ufY, 0.50, 0, 2);
 
-      // Loggia Floor Deck
-      addBox(1.68, 0.10, 1.05, 1.02, 0.06, 0.90, 3, 0);
+      // Loggia Floor Deck (x: 0.22 to 1.86, z: 0.45 to 1.43, y: 0.04 to 0.12)
+      addBox(1.64, 0.08, 0.98, 1.04, 0.08, 0.94, 3, 0);
 
-      // Stone & Timber Balustrade Railing around Loggia (Front & Right 3-Bay Arcade)
-      addBox(1.65, 0.08, 0.14, 1.02, 0.42, 1.36, 1, 0);
-      addBox(1.65, 0.08, 0.16, 1.02, 0.12, 1.36, 1, 0);
-      for (let b = 0; b < 7; b++) {
-        addCyl(0.035, 0.045, 0.26, 8, 0.34 + b * 0.22, 0.27, 1.36, 1, 0);
+      // Stone & Timber Balustrade Railing around Loggia (non-overlapping vertical stack)
+      // Front balustrade rails (z = 1.36)
+      addBox(1.42, 0.07, 0.14, 1.02, 0.43, 1.36, 1, 0);
+      addBox(1.42, 0.07, 0.16, 1.02, 0.16, 1.36, 1, 0);
+      for (let b = 0; b < 6; b++) {
+        addCyl(0.035, 0.045, 0.20, 8, 0.44 + b * 0.23, 0.295, 1.36, 1, 0);
       }
-      // Right side 3-bay balustrade rail (spanning z = -1.32 to +1.36 as in Right Side Elevation)
-      addBox(0.14, 0.08, 2.72, 1.80, 0.42, 0.02, 1, 0);
-      addBox(0.16, 0.08, 2.72, 1.80, 0.12, 0.02, 1, 0);
-      for (let b = 0; b < 11; b++) {
-        addCyl(0.035, 0.045, 0.26, 8, 1.80, 0.27, -1.18 + b * 0.24, 1, 0);
+      // Right side balustrade rails (x = 1.80)
+      addBox(0.14, 0.07, 2.52, 1.80, 0.43, 0.02, 1, 0);
+      addBox(0.16, 0.07, 2.52, 1.80, 0.16, 0.02, 1, 0);
+      for (let b = 0; b < 9; b++) {
+        if (Math.abs((-1.08 + b * 0.27) - 0.45) < 0.12 || Math.abs((-1.08 + b * 0.27) + 0.45) < 0.12) continue;
+        addCyl(0.035, 0.045, 0.20, 8, 1.80, 0.295, -1.08 + b * 0.27, 1, 0);
       }
-      // Corner & bay Stone Balustrade Posts
-      [[0.22, 1.36], [1.02, 1.36], [1.80, 1.36], [1.80, 0.45], [1.80, -0.45], [1.80, -1.32]].forEach(([px, pz]) => {
-        addBox(0.18, 0.42, 0.18, px, 0.26, pz, 1, 0);
+      // Corner & bay Stone Balustrade Posts (y: 0.12 to 0.48)
+      [[0.25, 1.36], [1.02, 1.36], [1.80, 1.36], [1.80, 0.45], [1.80, -0.45], [1.80, -1.32]].forEach(([px, pz]) => {
+        addBox(0.18, 0.36, 0.18, px, 0.30, pz, 1, 0);
       });
 
       // Timber Arcade Columns & Carved Arches supporting the Roof over Loggia
       const loggiaCols = [
-        [0.24, 1.36],
+        [0.25, 1.36],
         [1.02, 1.36],
         [1.80, 1.36],
         [1.80, 0.45],
@@ -1303,151 +1329,153 @@
         [1.80, -1.32]
       ];
       loggiaCols.forEach(([cx, cz]) => {
-        addBox(0.13, 0.82, 0.13, cx, 0.84, cz, 3, 0);
-        addBox(0.26, 0.14, 0.26, cx, 1.15, cz, 3, 0);
+        addBox(0.13, 0.64, 0.13, cx, 0.80, cz, 3, 0);
+        addBox(0.24, 0.10, 0.24, cx, 1.15, cz, 3, 0);
       });
-      // Carved frieze entablature beam above loggia columns
-      addBox(1.68, 0.14, 0.16, 1.02, 1.22, 1.36, 3, 0);
-      addBox(0.16, 0.14, 2.76, 1.80, 1.22, 0.0, 3, 0);
+      // Carved frieze entablature beam above loggia columns (non-overlapping L-corner)
+      addBox(1.50, 0.12, 0.16, 0.96, 1.24, 1.36, 3, 0);
+      addBox(0.16, 0.12, 2.84, 1.80, 1.24, 0.02, 3, 0);
 
       // =======================================================================
       // 7. MAIN STEEP ROOFS, FRONT/REAR/RIGHT CROSS GABLES & DORMERS
       // =======================================================================
       // Main Transverse Gable Roof running Left-Right (X axis)
-      const mainRoof = createGableRoof(3.08, 1.42, 4.05, 'x', 0, 1, 2, 0);
-      mainRoof.translate(-0.05, 1.26, 0.0);
+      const mainRoof = createGableRoof(3.08, 1.42, 3.96, 'x', 0, 1, 2, 0);
+      mainRoof.translate(-0.05, 1.27, 0.0);
       parts.push(mainRoof);
 
       // Prominent Front Cross-Gable Roof over the Entrance Bay (+Z)
-      const frontGableRoof = createGableRoof(1.76, 1.38, 1.95, 'z', 1, 1, 2, 0);
-      frontGableRoof.translate(doorX, 1.26, 0.72);
+      const frontGableRoof = createGableRoof(1.76, 1.34, 1.56, 'z', 1, 1, 2, 0);
+      frontGableRoof.translate(doorX, 1.28, 0.90);
       parts.push(frontGableRoof);
 
       // Prominent Rear Cross-Gable Roof (-Z, shown on Rear Elevation Blueprint!)
-      const rearGableRoof = createGableRoof(2.06, 1.38, 1.95, 'z', 0, 1, 2, 0);
-      rearGableRoof.translate(-0.25, 1.26, -0.84);
+      const rearGableRoof = createGableRoof(2.06, 1.34, 1.56, 'z', 0, 1, 2, 0);
+      rearGableRoof.translate(-0.25, 1.28, -1.04);
       parts.push(rearGableRoof);
 
       // Right Side Elevation Gable Window in the Upper Half-Timbered Gable (+X)
-      addWallWindow(1.94, 1.76, 0.0, 0.34, 0.38, 'x', false);
+      addWallWindow(1.83, 1.76, 0.0, 0.34, 0.38, 'x', false);
 
-      // Left Roof Dormer Window (+Z)
-      addBox(0.48, 0.44, 0.55, -1.52, 1.78, 0.82, 2, 0);
-      addBox(0.32, 0.32, 0.06, -1.52, 1.76, 1.10, 0, 2);
-      const leftDormerRoof = createGableRoof(0.60, 0.34, 0.68, 'z', 0, 1, 2, 0);
-      leftDormerRoof.translate(-1.52, 1.98, 0.84);
+      // Left Roof Dormer Window (+Z, window pane cleanly proud of dormer front wall)
+      addBox(0.48, 0.44, 0.52, -1.52, 1.78, 0.82, 2, 0);
+      addBox(0.32, 0.32, 0.06, -1.52, 1.76, 1.11, 0, 2);
+      const leftDormerRoof = createGableRoof(0.60, 0.34, 0.64, 'z', 0, 1, 2, 0);
+      leftDormerRoof.translate(-1.52, 2.01, 0.84);
       parts.push(leftDormerRoof);
 
       // Right Roof Dormer Window (+Z above balcony loggia)
-      addBox(0.52, 0.46, 0.58, 0.52, 1.78, 0.82, 2, 0);
-      addBox(0.34, 0.34, 0.06, 0.52, 1.76, 1.11, 0, 2);
-      const rightDormerRoof = createGableRoof(0.64, 0.36, 0.70, 'z', 0, 1, 2, 0);
-      rightDormerRoof.translate(0.52, 1.98, 0.84);
+      addBox(0.52, 0.46, 0.54, 0.52, 1.78, 0.82, 2, 0);
+      addBox(0.34, 0.34, 0.06, 0.52, 1.76, 1.12, 0, 2);
+      const rightDormerRoof = createGableRoof(0.64, 0.36, 0.66, 'z', 0, 1, 2, 0);
+      rightDormerRoof.translate(0.52, 2.02, 0.84);
       parts.push(rightDormerRoof);
 
-      // Tall Stone Chimneys & Clay Chimney Pots (matching all 4 elevations)
-      // Left-Rear Chimney Stack with twin clay pots
-      addBox(0.42, 1.05, 0.42, -1.05, 2.55, -0.35, 0, 0);
-      addBox(0.50, 0.10, 0.50, -1.05, 3.02, -0.35, 1, 0);
-      addCyl(0.07, 0.08, 0.24, 8, -1.14, 3.18, -0.35, 0, 1);
-      addCyl(0.07, 0.08, 0.24, 8, -0.96, 3.18, -0.35, 0, 1);
+      // Tall Stone Chimneys & Clay Chimney Pots
+      addBox(0.42, 1.00, 0.42, -1.05, 2.52, -0.35, 0, 0);
+      addBox(0.50, 0.10, 0.50, -1.05, 3.07, -0.35, 1, 0);
+      addCyl(0.07, 0.08, 0.24, 8, -1.14, 3.24, -0.35, 0, 1);
+      addCyl(0.07, 0.08, 0.24, 8, -0.96, 3.24, -0.35, 0, 1);
 
-      // Right-Front Chimney Stack (rising along right slope)
-      addBox(0.44, 1.25, 0.44, 1.15, 2.25, 0.55, 0, 0);
-      addBox(0.52, 0.12, 0.52, 1.15, 2.86, 0.55, 1, 0);
+      addBox(0.44, 1.20, 0.44, 1.15, 2.25, 0.55, 0, 0);
+      addBox(0.52, 0.12, 0.52, 1.15, 2.91, 0.55, 1, 0);
 
       // Wrought-Iron Weathervanes on Roof Gable Peaks (W-E / W-N)
       [[-1.85, 0.0], [1.75, 0.0], [-0.25, -1.68]].forEach(([wx, wz]) => {
-        addCyl(0.02, 0.025, 0.58, 6, wx, 2.92, wz, 3, 3, 0, 0, 0, { u: 0, v: 0.5, uw: 0.5, vh: 0.5 });
-        addBox(0.34, 0.03, 0.03, wx, 3.06, wz, 3, 3, 0, 0, 0, { u: 0, v: 0.5, uw: 0.5, vh: 0.5 });
-        addBox(0.03, 0.03, 0.34, wx, 3.06, wz, 3, 3, 0, 0, 0, { u: 0, v: 0.5, uw: 0.5, vh: 0.5 });
-        addCyl(0.05, 0.01, 0.14, 6, wx, 3.22, wz, 3, 3, 0, 0, 0, { u: 0.5, v: 0.5, uw: 0.5, vh: 0.5 });
+        addCyl(0.02, 0.025, 0.58, 6, wx, 2.98, wz, 3, 3, 0, 0, 0, { u: 0, v: 0.5, uw: 0.5, vh: 0.5 });
+        addBox(0.34, 0.03, 0.03, wx, 3.12, wz, 3, 3, 0, 0, 0, { u: 0, v: 0.5, uw: 0.5, vh: 0.5 });
+        addBox(0.03, 0.03, 0.34, wx, 3.12, wz, 3, 3, 0, 0, 0, { u: 0, v: 0.5, uw: 0.5, vh: 0.5 });
+        addCyl(0.05, 0.01, 0.14, 6, wx, 3.28, wz, 3, 3, 0, 0, 0, { u: 0.5, v: 0.5, uw: 0.5, vh: 0.5 });
       });
 
       // =======================================================================
       // 8. RIGHT REAR CLOCK & BELL TOWER (16.2m Total Height) + ORIEL WINDOW
+      // Contiguous with x >= 1.825 so it never overlaps the Loggia or Main Roof
       // =======================================================================
-      addBox(1.40, 0.12, 1.40, towX, 0.08, towZ, 1, 0);
-      addBox(1.36, 1.35, 1.36, towX, 0.80, towZ, 2, 0);
+      addBox(1.24, 0.12, 1.32, towX, -0.04, towZ, 1, 0);
+      addBox(1.18, 1.32, 1.26, towX, 0.68, towZ, 2, 0);
 
-      // Steep Slate Gable Sub-Roof on Tower Wing (oriented along X for Right Side Elevation gable)
-      const wingRoof = createGableRoof(1.48, 0.95, 1.48, 'x', 1, 1, 2, 0);
-      wingRoof.translate(towX, 1.46, towZ);
+      // Steep Slate Gable Sub-Roof on Tower Wing
+      const wingRoof = createGableRoof(1.38, 0.92, 1.34, 'x', 1, 1, 2, 0);
+      wingRoof.translate(towX, 1.35, towZ);
       parts.push(wingRoof);
 
       // Projecting Polygonal Oriel Stained-Glass Bay Window on Right Facade (+X) of Tower Wing
-      const orielX = towX + 0.72;
-      const orielY = 0.68;
-      const orielZ = towZ + 0.05;
-      addCyl(0.34, 0.08, 0.38, 6, orielX - 0.08, orielY - 0.52, orielZ, 3, 0);
-      addCyl(0.36, 0.36, 0.68, 6, orielX - 0.05, orielY, orielZ, 1, 2);
-      addCyl(0.02, 0.42, 0.44, 6, orielX - 0.05, orielY + 0.55, orielZ, 1, 1);
+      const orielX = towX + 0.66;
+      const orielY = 0.66;
+      const orielZ = towZ;
+      addCyl(0.32, 0.08, 0.36, 6, orielX - 0.06, orielY - 0.52, orielZ, 3, 0);
+      addCyl(0.34, 0.34, 0.68, 6, orielX - 0.04, orielY, orielZ, 1, 2);
+      addCyl(0.02, 0.40, 0.42, 6, orielX - 0.04, orielY + 0.55, orielZ, 1, 1);
 
-      // Upper Stone Bell & Clock Tower Belfry rising above roof
-      const belfryY = 2.42;
-      addBox(1.08, 0.96, 1.08, towX, belfryY, towZ, 1, 0);
-      addBox(1.18, 0.10, 1.18, towX, belfryY - 0.48, towZ, 1, 0);
-      addBox(1.20, 0.10, 1.20, towX, belfryY + 0.48, towZ, 1, 0);
+      // Upper Stone Bell & Clock Tower Belfry rising above roof (non-overlapping vertical stack)
+      const belfryY = 2.40;
+      addBox(1.16, 0.10, 1.16, towX, belfryY - 0.51, towZ, 1, 0);
+      addBox(1.04, 0.92, 1.04, towX, belfryY, towZ, 1, 0);
+      addBox(1.18, 0.10, 1.18, towX, belfryY + 0.51, towZ, 1, 0);
 
-      // Bell Arch Opening on Front (+Z) & Rear (-Z) of Belfry with Hanging Bronze Bell
-      addBox(0.46, 0.58, 0.12, towX, belfryY - 0.02, towZ + 0.50, 3, 3, 0, 0, 0, { u: 0, v: 0.5, uw: 0.5, vh: 0.5 });
-      addCyl(0.08, 0.18, 0.24, 12, towX, belfryY - 0.02, towZ + 0.54, 3, 3, 0, 0, 0, { u: 0.5, v: 0.5, uw: 0.5, vh: 0.5 });
+      // Bell Arch Opening on Front (+Z) of Belfry (wall is at towZ + 0.52; place arch at towZ + 0.55)
+      addBox(0.46, 0.56, 0.06, towX, belfryY - 0.02, towZ + 0.55, 3, 3, 0, 0, 0, { u: 0, v: 0.5, uw: 0.5, vh: 0.5 });
+      addCyl(0.08, 0.17, 0.24, 12, towX, belfryY - 0.02, towZ + 0.62, 3, 3, 0, 0, 0, { u: 0.5, v: 0.5, uw: 0.5, vh: 0.5 });
 
-      // Circular Roman Numeral Clock Face on Right (+X) of Belfry (Right Side Elevation)
-      const clockCyl = new THREE.CylinderGeometry(0.34, 0.34, 0.08, 20);
+      // Circular Roman Numeral Clock Face on Right (+X wall is at towX + 0.52; place clock at towX + 0.56)
+      const clockCyl = new THREE.CylinderGeometry(0.34, 0.34, 0.06, 20);
       mapUVToTile(clockCyl, 3, 2);
       clockCyl.rotateZ(Math.PI * 0.5);
-      clockCyl.translate(towX + 0.54, belfryY + 0.02, towZ);
+      clockCyl.translate(towX + 0.56, belfryY + 0.02, towZ);
       parts.push(clockCyl);
 
-      // Tall Pointed Octagonal Slate Spire & Finial atop Bell Tower (16.2m Blueprint Apex)
-      addCyl(0.03, 0.82, 1.28, 8, towX, belfryY + 1.14, towZ, 1, 1, 0, Math.PI / 8, 0);
-      addCyl(0.01, 0.08, 0.25, 8, towX, belfryY + 1.86, towZ, 3, 3, 0, 0, 0, { u: 0.5, v: 0.5, uw: 0.5, vh: 0.5 });
+      // Tall Pointed Octagonal Slate Spire & Finial atop Bell Tower (sits above belfryY + 0.56)
+      addCyl(0.03, 0.80, 1.26, 8, towX, belfryY + 1.19, towZ, 1, 1, 0, Math.PI / 8, 0);
+      addCyl(0.01, 0.08, 0.25, 8, towX, belfryY + 1.94, towZ, 3, 3, 0, 0, 0, { u: 0.5, v: 0.5, uw: 0.5, vh: 0.5 });
     }
 
     // =========================================================================
-    // 9. CRIMSON & GOLD ROYAL BANNERS (5 Hanging Banners on Facade)
+    // 9. CRIMSON & GOLD ROYAL BANNERS (Offset cleanly in front of walls!)
     // =========================================================================
     function addBanner(x, y, z, w, h, isLion = true, tiltZ = 0) {
       addCyl(0.02, 0.02, w + 0.14, 6, x, y + h * 0.5 + 0.03, z, 3, 3, 0, 0, Math.PI * 0.5, { u: 0.5, v: 0.5, uw: 0.5, vh: 0.5 });
       const sub = isLion ? { u: 0.02, v: 0.04, uw: 0.46, vh: 0.92 } : { u: 0.52, v: 0.04, uw: 0.46, vh: 0.92 };
-      addBox(w, h, 0.03, x, y, z, 2, 2, 0, 0, tiltZ, sub);
+      addBox(w, h, 0.04, x, y, z, 2, 2, 0, 0, tiltZ, sub);
       const tip = new THREE.ConeGeometry(w * 0.52, 0.22, 4);
       mapUVToTile(tip, 2, 2, 1, 1, sub);
       tip.rotateY(Math.PI * 0.25);
       tip.rotateX(Math.PI);
-      tip.scale(1.0, 1.0, 0.12);
-      tip.translate(x, y - h * 0.5 - 0.10, z);
+      tip.scale(1.0, 1.0, 0.14);
+      tip.translate(x, y - h * 0.5 - 0.11, z);
       parts.push(tip);
     }
 
     if (!cutaway) {
-      addBanner(-1.72, 0.55, 1.46, 0.34, 0.82, true);
-      addBanner(-1.32, 0.52, 1.46, 0.34, 0.82, false);
-      addBanner(-0.12, 0.48, 1.62, 0.34, 0.84, false, -0.08);
+      // Upper left wall face is at z = 1.43; place banners at z = 1.50
+      addBanner(-1.72, 0.55, 1.50, 0.34, 0.82, true);
+      addBanner(-1.32, 0.52, 1.50, 0.34, 0.82, false);
+      // Front gable bay face is at z = 1.61; place banner at z = 1.68
+      addBanner(-0.12, 0.48, 1.68, 0.34, 0.84, false, -0.08);
     }
-    addBanner(0.46, -0.78, 1.42, 0.26, 0.66, true);
-    addBanner(1.50, -0.78, 1.42, 0.26, 0.66, false);
+    // Lower ground floor wall face is at z = 1.375; place banners at z = 1.45
+    addBanner(0.46, -0.78, 1.45, 0.26, 0.66, true);
+    addBanner(1.50, -0.78, 1.45, 0.26, 0.66, false);
 
     // =========================================================================
     // 10. FLOWER PLANTERS, CRATES, BARRELS & COURTYARD NOTICE BOARD
     // =========================================================================
     addBox(0.76, 0.28, 0.34, 0.98, -1.42, 1.62, 1, 0);
-    addBox(0.68, 0.24, 0.26, 0.98, -1.20, 1.62, 2, 3);
+    addBox(0.68, 0.20, 0.26, 0.98, -1.18, 1.62, 2, 3);
 
     [0.48, 1.48].forEach(px => {
       addBox(0.30, 0.34, 0.30, px, -1.39, 1.64, 1, 0);
-      addCyl(0.16, 0.11, 0.16, 10, px, -1.15, 1.64, 0, 1);
+      addCyl(0.16, 0.11, 0.16, 10, px, -1.14, 1.64, 0, 1);
       const bush = new THREE.IcosahedronGeometry(0.19, 1);
       mapUVToTile(bush, 2, 3);
-      bush.translate(px, -0.96, 1.64);
+      bush.translate(px, -0.94, 1.64);
       parts.push(bush);
     });
 
     addCyl(0.15, 0.10, 0.16, 10, doorX - 0.85, -1.18, doorZ + 0.18, 0, 1);
     const leftBush = new THREE.IcosahedronGeometry(0.18, 1);
     mapUVToTile(leftBush, 2, 3);
-    leftBush.translate(doorX - 0.85, -1.00, doorZ + 0.18);
+    leftBush.translate(doorX - 0.85, -0.98, doorZ + 0.18);
     parts.push(leftBush);
 
     // Wooden Cargo Crates at Right Corner
@@ -1455,20 +1483,21 @@
     addBox(0.32, 0.32, 0.32, 2.12, -1.40, 0.76, 1, 3, 0, -0.08, 0);
 
     // Wooden Barrels on Right Side
-    addCyl(0.16, 0.16, 0.42, 12, 2.15, -1.35, -0.05, 1, 3);
-    addCyl(0.16, 0.16, 0.42, 12, 2.28, -1.35, -0.42, 1, 3);
+    addCyl(0.16, 0.16, 0.42, 12, 2.18, -1.35, 0.28, 1, 3);
+    addCyl(0.16, 0.16, 0.42, 12, 2.28, -1.35, -0.08, 1, 3);
 
     // Freestanding Wooden Courtyard Notice Board / Quest Board on Right Side
-    const nbX = 2.65;
-    const nbZ = 0.35;
-    addBox(0.10, 1.15, 0.10, nbX, -0.98, nbZ - 0.48, 3, 0);
-    addBox(0.10, 1.15, 0.10, nbX, -0.98, nbZ + 0.48, 3, 0);
+    const nbX = 2.72;
+    const nbZ = 0.42;
+    addBox(0.10, 1.08, 0.10, nbX, -0.98, nbZ - 0.48, 3, 0);
+    addBox(0.10, 1.08, 0.10, nbX, -0.98, nbZ + 0.48, 3, 0);
     addBox(0.32, 0.08, 0.14, nbX, -1.52, nbZ - 0.48, 3, 0);
     addBox(0.32, 0.08, 0.14, nbX, -1.52, nbZ + 0.48, 3, 0);
-    addBox(0.06, 0.68, 0.92, nbX, -0.82, nbZ, 1, 3);
-    addBox(0.24, 0.10, 1.10, nbX, -0.44, nbZ, 3, 0);
-    [-0.26, 0.0, 0.26].forEach((nz, idx) => {
-      addBox(0.08, 0.22, 0.18, nbX, -0.76 + (idx % 2) * 0.08, nbZ + nz, 3, 3, 0, 0, 0, { u: 0, v: 0, uw: 0.5, vh: 0.5 });
+    addBox(0.06, 0.68, 0.86, nbX, -0.82, nbZ, 1, 3);
+    addBox(0.24, 0.10, 1.10, nbX, -0.39, nbZ, 3, 0);
+    // Pinned Parchment Quest Notices (offset to nbX + 0.045 so they sit cleanly on the front face!)
+    [-0.25, 0.0, 0.25].forEach((nz, idx) => {
+      addBox(0.03, 0.22, 0.18, nbX + 0.045, -0.76 + (idx % 2) * 0.08, nbZ + nz, 3, 3, 0, 0, 0, { u: 0, v: 0, uw: 0.5, vh: 0.5 });
     });
 
     const finalGeom = mergeBufferGeometries(parts);
@@ -1507,7 +1536,7 @@
         metalness: 0.08,
         flatShading: options.flatShading || false,
         wireframe: options.wireframe || false,
-        side: THREE.DoubleSide
+        side: THREE.FrontSide
       });
     },
 

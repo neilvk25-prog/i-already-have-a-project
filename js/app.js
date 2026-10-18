@@ -66,8 +66,8 @@
     scene.background = new THREE.Color(0x0c111d);
     scene.fog = new THREE.FogExp2(0x0c111d, 0.025);
 
-    // 2. Camera (3/4 Isometric perspective matching the reference artwork)
-    camera = new THREE.PerspectiveCamera(42, window.innerWidth / window.innerHeight, 0.1, 100);
+    // 2. Camera (3/4 Isometric perspective with tight near/far for maximum depth-buffer precision)
+    camera = new THREE.PerspectiveCamera(42, window.innerWidth / window.innerHeight, 0.25, 45);
     camera.position.set(4.2, 2.7, 6.2);
 
     // 3. Renderer
@@ -130,15 +130,20 @@
     ambientLight = new THREE.HemisphereLight(0xfff6e5, 0x384558, 0.85);
     scene.add(ambientLight);
 
-    // Warm Golden Sun Key Light
+    // Warm Golden Sun Key Light with normalBias to prevent self-shadow acne flickering
     keyLight = new THREE.DirectionalLight(0xfff2dc, 1.55);
     keyLight.position.set(6, 9, 7);
     keyLight.castShadow = true;
     keyLight.shadow.mapSize.width = 2048;
     keyLight.shadow.mapSize.height = 2048;
-    keyLight.shadow.camera.near = 0.5;
-    keyLight.shadow.camera.far = 28;
-    keyLight.shadow.bias = -0.0005;
+    keyLight.shadow.camera.near = 1.0;
+    keyLight.shadow.camera.far = 22;
+    keyLight.shadow.camera.left = -5.5;
+    keyLight.shadow.camera.right = 5.5;
+    keyLight.shadow.camera.top = 5.5;
+    keyLight.shadow.camera.bottom = -5.5;
+    keyLight.shadow.bias = -0.0012;
+    keyLight.shadow.normalBias = 0.04;
     scene.add(keyLight);
 
     // Soft Sky Fill Light
@@ -153,19 +158,20 @@
   }
 
   function setupFloor() {
-    // Elegant radial grid
+    // Elegant radial grid (separated cleanly from shadow plane & plinth to avoid Z-fighting)
     floorGrid = new THREE.GridHelper(24, 48, 0x00f0ff, 0x1f2b3e);
-    floorGrid.position.y = -2.2;
+    floorGrid.position.y = -2.20;
     floorGrid.material.opacity = 0.35;
     floorGrid.material.transparent = true;
+    floorGrid.material.depthWrite = false;
     scene.add(floorGrid);
 
     // Subtle contact shadow floor disk
     const shadowGeo = new THREE.PlaneGeometry(24, 24);
-    const shadowMat = new THREE.ShadowMaterial({ opacity: 0.45 });
+    const shadowMat = new THREE.ShadowMaterial({ opacity: 0.45, polygonOffset: true, polygonOffsetFactor: 1, polygonOffsetUnits: 1 });
     const shadowPlane = new THREE.Mesh(shadowGeo, shadowMat);
     shadowPlane.rotation.x = -Math.PI / 2;
-    shadowPlane.position.y = -2.201;
+    shadowPlane.position.y = -2.22;
     shadowPlane.receiveShadow = true;
     scene.add(shadowPlane);
   }
