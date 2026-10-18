@@ -81,31 +81,46 @@
     <div class="panel-body">
       <!-- Tab 1: Presets -->
       <div id="tab-presets" class="tab-content active">
-        <div class="section-title" style="margin-top: 2px;">🏰 Featured Architecture (Xogot Ready)</div>
-        <div class="options-grid" style="grid-template-columns: 1fr;">
-          <button class="grid-btn active" data-preset="guildhallHouse" style="flex-direction: row; justify-content: flex-start; gap: 12px; padding: 12px 14px;">
-            <span class="icon" style="font-size: 24px;">🏰</span>
+        <div class="section-title" style="margin-top: 2px;">🏰 Guild Hall Blueprint &amp; 3D Model (Xogot Ready)</div>
+        <div class="options-grid" style="grid-template-columns: 1fr; gap: 6px;">
+          <button class="grid-btn active" data-preset="guildhallHouse" style="flex-direction: row; justify-content: flex-start; gap: 12px; padding: 10px 14px;">
+            <span class="icon" style="font-size: 22px;">🏰</span>
             <div style="text-align: left;">
-              <div style="font-weight: 700; font-size: 13px; color: #fff;">Medieval Guildhall & Bell Tower</div>
-              <div style="font-size: 11px; color: var(--accent-cyan); margin-top: 2px;">UV-Textured 3D Manor • Ready for Xogot (iPad)</div>
+              <div style="font-weight: 700; font-size: 13px; color: #fff;">Full Guild Hall &amp; Clock Tower (18m × 16.2m)</div>
+              <div style="font-size: 11px; color: var(--accent-cyan); margin-top: 2px;">All 4 Blueprint Elevations • UV-Textured for Xogot</div>
+            </div>
+          </button>
+          <button class="grid-btn" data-preset="guildhallPlan" style="flex-direction: row; justify-content: flex-start; gap: 12px; padding: 10px 14px;">
+            <span class="icon" style="font-size: 22px;">📐</span>
+            <div style="text-align: left;">
+              <div style="font-weight: 700; font-size: 13px; color: #fff;">Ground Floor Plan (3D Interior Cutaway)</div>
+              <div style="font-size: 11px; color: var(--text-muted); margin-top: 2px;">14.5m × 11m Hall • Pillars, Rooms &amp; U-Staircase</div>
             </div>
           </button>
         </div>
 
-        <!-- Reference Photo & Live 2048x2048 UV Texture Atlas Preview Card -->
+        <!-- Blueprint, Reference Photo & Live 2048x2048 UV Texture Atlas Preview Card -->
         <div id="guildhall-info-card" style="margin-top: 10px; padding: 10px; border-radius: 10px; background: rgba(0, 0, 0, 0.32); border: 1px solid rgba(0, 240, 255, 0.22);">
-          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 8px;">
+          <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; margin-bottom: 8px;">
             <div>
-              <div style="font-size: 10px; color: var(--text-muted); margin-bottom: 4px; font-weight: 600;">📸 Reference Concept</div>
-              <img src="images/photo-1792336425-1.jpg" alt="Medieval House Reference" style="width: 100%; height: 92px; object-fit: cover; border-radius: 6px; border: 1px solid rgba(255,255,255,0.15);">
+              <div style="font-size: 9px; color: var(--text-muted); margin-bottom: 3px; font-weight: 600;">📐 Blueprint</div>
+              <a href="images/photo-1792348449-1.jpg" target="_blank" title="Open Full Architectural Blueprint">
+                <img src="images/photo-1792348449-1.jpg" alt="Guild Hall Architectural Blueprint" style="width: 100%; height: 74px; object-fit: cover; border-radius: 6px; border: 1px solid rgba(0,240,255,0.35);">
+              </a>
             </div>
             <div>
-              <div style="font-size: 10px; color: var(--text-muted); margin-bottom: 4px; font-weight: 600;">🎨 2K UV Texture Atlas</div>
-              <canvas id="atlas-preview-canvas" width="256" height="256" style="width: 100%; height: 92px; object-fit: cover; border-radius: 6px; border: 1px solid rgba(0,240,255,0.3); background: #1a1815;"></canvas>
+              <div style="font-size: 9px; color: var(--text-muted); margin-bottom: 3px; font-weight: 600;">📸 Reference</div>
+              <a href="images/photo-1792348478-2.jpg" target="_blank" title="Open Full Reference Artwork">
+                <img src="images/photo-1792348478-2.jpg" alt="Guild Hall Reference" style="width: 100%; height: 74px; object-fit: cover; border-radius: 6px; border: 1px solid rgba(255,255,255,0.18);">
+              </a>
+            </div>
+            <div>
+              <div style="font-size: 9px; color: var(--text-muted); margin-bottom: 3px; font-weight: 600;">🎨 2K UV Atlas</div>
+              <canvas id="atlas-preview-canvas" width="256" height="256" style="width: 100%; height: 74px; object-fit: cover; border-radius: 6px; border: 1px solid rgba(0,240,255,0.3); background: #1a1815;"></canvas>
             </div>
           </div>
-          <div style="font-size: 11px; color: var(--text-muted); line-height: 1.4; margin-bottom: 8px;">
-            Includes dressed stone quoins, half-timbered upper gables, terracotta &amp; slate roofs, arched portal &amp; stairs, balcony loggia, clock/bell tower, stained-glass oriel bay, crimson banners, water trough, flower planters &amp; quest board.
+          <div style="font-size: 11px; color: var(--text-muted); line-height: 1.38; margin-bottom: 8px;">
+            Built from your <strong>Architectural Blueprint &amp; Elevations</strong>: Front portal &amp; stairs, Rear jettied cross-gable &amp; corbels, Left half-timbered gable &amp; 1.8m veranda shelter, Right 3-bay loggia, stained-glass oriel &amp; 16.2m clock/bell tower, plus interior Ground Floor Plan.
           </div>
           <div style="display: flex; gap: 6px;">
             <button onclick="document.getElementById('btn-export-glb').click();" class="icon-btn btn-accent" style="flex: 1; justify-content: center; padding: 8px 10px; font-weight: 600;">
@@ -465,12 +480,14 @@
     ⚙️ Controls
   </button>
 
-  <!-- Camera Viewport Quick Dock (Bottom Right) -->
+  <!-- Camera Viewport Quick Dock (Bottom Right - Matches Blueprint Elevations) -->
   <div class="camera-dock glass-panel">
     <button class="camera-btn active" data-camera="iso">ISO</button>
     <button class="camera-btn" data-camera="front">FRONT</button>
-    <button class="camera-btn" data-camera="top">TOP</button>
-    <button class="camera-btn" data-camera="side">SIDE</button>
+    <button class="camera-btn" data-camera="right">RIGHT</button>
+    <button class="camera-btn" data-camera="rear">REAR</button>
+    <button class="camera-btn" data-camera="left">LEFT</button>
+    <button class="camera-btn" data-camera="top">PLAN</button>
   </div>
 
   <!-- Local Offline-Capable Libraries -->

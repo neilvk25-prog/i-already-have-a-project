@@ -257,7 +257,11 @@
 
     // 11. Medieval Guildhall / Manor House (Textured for Xogot Engine)
     guildhallHouse: function() {
-      return window.MedievalHouseBuilder.buildGeometry();
+      return window.MedievalHouseBuilder.buildGeometry({ cutaway: false });
+    },
+    // 12. Medieval Guildhall Ground Floor Plan Cutaway (Matching Architectural Blueprint)
+    guildhallPlan: function() {
+      return window.MedievalHouseBuilder.buildGeometry({ cutaway: true });
     }
   };
 
