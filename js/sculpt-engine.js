@@ -6,11 +6,12 @@
   'use strict';
 
   class SculptEngine {
-    constructor(scene, camera, renderer, getActiveMesh) {
+    constructor(scene, camera, renderer, getActiveMesh, controls) {
       this.scene = scene;
       this.camera = camera;
       this.renderer = renderer;
       this.getActiveMesh = getActiveMesh;
+      this.controls = controls;
 
       this.enabled = false;
       this.mode = 'push'; // push, pull, smooth, noise, flatten
@@ -141,6 +142,7 @@
       const hit = this.getMeshIntersection();
       if (hit) {
         this.isMouseDown = true;
+        if (this.controls) this.controls.enabled = false;
         this.saveState();
         this.applySculpt(hit);
         this.updateBrushIndicator(hit);
@@ -164,6 +166,7 @@
     onPointerUp() {
       if (this.isMouseDown) {
         this.isMouseDown = false;
+        if (this.controls) this.controls.enabled = true;
         const mesh = this.getActiveMesh();
         if (mesh && mesh.geometry) {
           mesh.geometry.computeVertexNormals();
