@@ -112,6 +112,42 @@
       "created_at": "2026-10-18T15:49:35.279Z",
       "sender": "ios",
       "is_cancelled": false
+    },
+    {
+      "id": "70d132f0-4603-4c39-be9e-8f467a9eecf5",
+      "role": "agent",
+      "content": "Your weekly Google allowance for this model is used up.\nIt comes back in about 5 hours.\nTwo ways to keep going now:\n- Pick another model in the app — each family has its own allowance, and the picker shows what's left.\n- Get more from Google: https://antigravity.google/g1-upgrade",
+      "status": "error",
+      "model": "claude-opus-5-5-medium",
+      "client_type": "gemini-bridge",
+      "parent_message_id": "4cffb8dd-0ae2-42fe-a861-3194b1ad6747",
+      "created_at": "2026-10-18T15:49:40.694Z",
+      "sender": "macOS",
+      "is_cancelled": false
+    },
+    {
+      "id": "2f200057-f57d-4f4e-8a9f-c3add74d0815",
+      "role": "user",
+      "content": "Can you look into the mesh and textures look at the reference again and build it properly like a 3d artist would do.",
+      "status": "pending",
+      "model": "claude-opus-5-5-medium",
+      "client_type": "gemini-bridge",
+      "parent_message_id": null,
+      "created_at": "2026-10-18T15:50:35.108Z",
+      "sender": "ios",
+      "is_cancelled": false
+    },
+    {
+      "id": "d35716d1-589a-4c49-939b-855589c09545",
+      "role": "agent",
+      "content": "Your weekly Google allowance for this model is used up.\nIt comes back in about 5 hours.\nTwo ways to keep going now:\n- Pick another model in the app — each family has its own allowance, and the picker shows what's left.\n- Get more from Google: https://antigravity.google/g1-upgrade",
+      "status": "error",
+      "model": "claude-opus-5-5-medium",
+      "client_type": "gemini-bridge",
+      "parent_message_id": "2f200057-f57d-4f4e-8a9f-c3add74d0815",
+      "created_at": "2026-10-18T15:50:40.311Z",
+      "sender": "macOS",
+      "is_cancelled": false
     }
   ]
 }
