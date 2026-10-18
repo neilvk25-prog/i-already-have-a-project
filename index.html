@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>MeshCraft 3D - 3D Mesh Studio & Builder</title>
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>💠</text></svg>">
+</head>
+<body>
+  <!-- 3D Canvas Container -->
+  <div id="canvas-container"></div>
+
+  <!-- Top Glass Navigation Bar -->
+  <header class="top-nav glass-panel">
+    <div class="brand-container">
+      <div class="brand-logo">💠</div>
+      <div>
+        <div class="brand-name">MeshCraft 3D</div>
+      </div>
+      <span class="brand-badge">STUDIO</span>
+    </div>
+
+    <div class="top-actions">
+      <div class="status-badge">
+        <span class="fps-dot"></span>
+        <span id="metric-fps">60</span> FPS
+      </div>
+      <button id="btn-snapshot" class="icon-btn" title="Capture Snapshot">
+        <span>📸</span> <span>Capture</span>
+      </button>
+      <button id="btn-export-stl" class="icon-btn btn-accent" title="Export 3D Print STL">
+        <span>🖨️</span> <span>Export STL</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- Live Mesh Metrics HUD -->
+  <div class="metrics-hud glass-panel">
+    <div class="metrics-title">
+      <span>Mesh Topology</span>
+      <span style="color: var(--accent-cyan);">● LIVE</span>
+    </div>
+    <div class="metric-row">
+      <span class="metric-label">Vertices (V)</span>
+      <span id="metric-vertices" class="metric-val highlight">0</span>
+    </div>
+    <div class="metric-row">
+      <span class="metric-label">Triangles (F)</span>
+      <span id="metric-faces" class="metric-val highlight">0</span>
+    </div>
+    <div class="metric-row">
+      <span class="metric-label">Edges (E)</span>
+      <span id="metric-edges" class="metric-val">0</span>
+    </div>
+    <div class="metric-row">
+      <span class="metric-label">Euler (χ)</span>
+      <span id="metric-euler" class="metric-val">0</span>
+    </div>
+    <div class="metric-row">
+      <span class="metric-label">Bounding Box</span>
+      <span id="metric-dimensions" class="metric-val" style="font-size: 10px;">0 × 0 × 0</span>
+    </div>
+  </div>
+
+  <!-- Main Floating Control Panel / Mobile Bottom Sheet -->
+  <aside id="control-panel" class="control-panel glass-panel">
+    <!-- Panel Navigation Tabs -->
+    <nav class="panel-tabs">
+      <button class="nav-tab active" data-tab="presets">📐 Presets</button>
+      <button class="nav-tab" data-tab="materials">🎨 Shaders</button>
+      <button class="nav-tab" data-tab="sculpt">🔨 Sculpt</button>
+      <button class="nav-tab" data-tab="modifiers">⚡ Modifiers</button>
+      <button class="nav-tab" data-tab="export">💾 Export</button>
+    </nav>
+
+    <!-- Panel Scrollable Body -->
+    <div class="panel-body">
+      <!-- Tab 1: Presets -->
+      <div id="tab-presets" class="tab-content active">
+        <div class="section-title">✨ Mathematical Surfaces</div>
+        <div class="options-grid">
+          <button class="grid-btn active" data-preset="torusKnot">
+            <span class="icon">🥨</span>
+            <span>Torus Knot</span>
+          </button>
+          <button class="grid-btn" data-preset="kleinBottle">
+            <span class="icon">🍶</span>
+            <span>Klein Bottle</span>
+          </button>
+          <button class="grid-btn" data-preset="superformula">
+            <span class="icon">⭐</span>
+            <span>Supershape 3D</span>
+          </button>
+          <button class="grid-btn" data-preset="mobiusStrip">
+            <span class="icon">♾️</span>
+            <span>Mobius Strip</span>
+          </button>
+          <button class="grid-btn" data-preset="enneper">
+            <span class="icon">🌊</span>
+            <span>Enneper Surface</span>
+          </button>
+          <button class="grid-btn" data-preset="dini">
+            <span class="icon">🌀</span>
+            <span>Dini Spiral</span>
+          </button>
+        </div>
+
+        <div class="section-title">🔮 Procedural & Polyhedral</div>
+        <div class="options-grid">
+          <button class="grid-btn" data-preset="cyberCrystal">
+            <span class="icon">💎</span>
+            <span>Cyber Crystal</span>
+          </button>
+          <button class="grid-btn" data-preset="landscape">
+            <span class="icon">⛰️</span>
+            <span>Terrain Mesh</span>
+          </button>
+          <button class="grid-btn" data-preset="geodesic">
+            <span class="icon">🌐</span>
+            <span>Geodesic Dome</span>
+          </button>
+        </div>
+
+        <div class="section-title">🧱 Geometric Primitives</div>
+        <div class="options-grid options-grid-3">
+          <button class="grid-btn" data-preset="primitiveTorus">
+            <span class="icon">🍩</span>
+            <span>Torus</span>
+          </button>
+          <button class="grid-btn" data-preset="primitiveSphere">
+            <span class="icon">⚪</span>
+            <span>Sphere</span>
+          </button>
+          <button class="grid-btn" data-preset="primitiveBox">
+            <span class="icon">📦</span>
+            <span>Cube</span>
+          </button>
+        </div>
+
+        <!-- Dynamic Parametric Sliders: Torus Knot -->
+        <div id="torus-controls" style="margin-top: 14px; padding-top: 10px; border-top: 1px solid rgba(255,255,255,0.08);">
+          <div class="section-title">⚙️ Knot Harmonics (p, q)</div>
+          <div class="control-row">
+            <div class="control-label">
+              <span>Winding P</span>
+              <span id="val-torus-p" class="control-val">3</span>
+            </div>
+            <input id="slider-torus-p" type="range" min="1" max="12" step="1" value="3">
+          </div>
+          <div class="control-row">
+            <div class="control-label">
+              <span>Winding Q</span>
+              <span id="val-torus-q" class="control-val">5</span>
+            </div>
+            <input id="slider-torus-q" type="range" min="1" max="15" step="1" value="5">
+          </div>
+        </div>
+
+        <!-- Dynamic Parametric Sliders: Supershape 3D -->
+        <div id="superformula-controls" style="display: none; margin-top: 14px; padding-top: 10px; border-top: 1px solid rgba(255,255,255,0.08);">
+          <div class="section-title">⚙️ Gielis Superformula</div>
+          <div class="control-row">
+            <div class="control-label">
+              <span>Symmetry (m)</span>
+              <span id="val-super-m" class="control-val">7</span>
+            </div>
+            <input id="slider-super-m" type="range" min="1" max="16" step="1" value="7">
+          </div>
+          <div class="control-row">
+            <div class="control-label">
+              <span>Exponent n₁</span>
+              <span id="val-super-n1" class="control-val">0.2</span>
+            </div>
+            <input id="slider-super-n1" type="range" min="0.1" max="3" step="0.1" value="0.2">
+          </div>
+        </div>
+      </div>
+
+      <!-- Tab 2: Materials & Shaders -->
+      <div id="tab-materials" class="tab-content">
+        <div class="section-title">🎨 Shading & Surfaces</div>
+        <div class="options-grid">
+          <button class="grid-btn active" data-material="chrome">
+            <div class="material-dot" style="background: linear-gradient(135deg, #eee, #888);"></div>
+            <span>Molten Chrome</span>
+          </button>
+          <button class="grid-btn" data-material="gold">
+            <div class="material-dot" style="background: linear-gradient(135deg, #ffd700, #b8860b);"></div>
+            <span>24K Gold</span>
+          </button>
+          <button class="grid-btn" data-material="cyberpunk">
+            <div class="material-dot" style="background: linear-gradient(135deg, #00f0ff, #0044ff);"></div>
+            <span>Cyber Blue</span>
+          </button>
+          <button class="grid-btn" data-material="hologram">
+            <div class="material-dot" style="background: linear-gradient(135deg, #00f0ff, #ff007f);"></div>
+            <span>Hologram</span>
+          </button>
+          <button class="grid-btn" data-material="iridescent">
+            <div class="material-dot" style="background: linear-gradient(135deg, #ff71ce, #01cdfe, #05ffa1);"></div>
+            <span>Iridescent</span>
+          </button>
+          <button class="grid-btn" data-material="clay">
+            <div class="material-dot" style="background: #e5e7eb;"></div>
+            <span>Studio Clay</span>
+          </button>
+          <button class="grid-btn" data-material="normal">
+            <div class="material-dot" style="background: linear-gradient(135deg, #f00, #0f0, #00f);"></div>
+            <span>Normal Vector</span>
+          </button>
+          <button class="grid-btn" data-material="heatmap">
+            <div class="material-dot" style="background: linear-gradient(135deg, #00f, #0f0, #ff0, #f00);"></div>
+            <span>Heatmap</span>
+          </button>
+          <button class="grid-btn" data-material="glass">
+            <div class="material-dot" style="background: rgba(0, 212, 255, 0.5);"></div>
+            <span>Cyan Glass</span>
+          </button>
+          <button class="grid-btn" data-material="obsidian">
+            <div class="material-dot" style="background: #111622;"></div>
+            <span>Obsidian</span>
+          </button>
+        </div>
+
+        <div class="section-title">👁️ Render Overlays</div>
+        <div class="toggle-row">
+          <span class="toggle-label"><span>🌐</span> Wireframe Grid Overlay</span>
+          <label class="switch">
+            <input id="toggle-wireframe" type="checkbox" checked>
+            <span class="slider-switch"></span>
+          </label>
+        </div>
+        <div class="toggle-row">
+          <span class="toggle-label"><span>🔺</span> Flat Poly Shading</span>
+          <label class="switch">
+            <input id="toggle-flat" type="checkbox">
+            <span class="slider-switch"></span>
+          </label>
+        </div>
+        <div class="toggle-row">
+          <span class="toggle-label"><span>📍</span> Normal Vectors (CAD)</span>
+          <label class="switch">
+            <input id="toggle-normals" type="checkbox">
+            <span class="slider-switch"></span>
+          </label>
+        </div>
+        <div class="toggle-row">
+          <span class="toggle-label"><span>🔲</span> Bounding Box</span>
+          <label class="switch">
+            <input id="toggle-bbox" type="checkbox">
+            <span class="slider-switch"></span>
+          </label>
+        </div>
+      </div>
+
+      <!-- Tab 3: Interactive Sculpting -->
+      <div id="tab-sculpt" class="tab-content">
+        <div class="section-title">🖐️ 3D Sculpting Brush</div>
+        <div class="toggle-row" style="margin-bottom: 12px;">
+          <span class="toggle-label"><span>✨</span> Enable Sculpt Mode</span>
+          <label class="switch">
+            <input id="toggle-sculpt" type="checkbox">
+            <span class="slider-switch"></span>
+          </label>
+        </div>
+
+        <div id="sculpt-subpanel" style="display: none;">
+          <p style="font-size: 11px; color: var(--accent-cyan); margin-bottom: 10px;">
+            💡 Drag directly on the 3D mesh surface to sculpt vertices!
+          </p>
+
+          <div class="section-title">Brush Mode</div>
+          <div class="options-grid">
+            <button class="grid-btn active" data-sculpt-mode="push">
+              <span class="icon">⬆️</span>
+              <span>Push</span>
+            </button>
+            <button class="grid-btn" data-sculpt-mode="pull">
+              <span class="icon">⬇️</span>
+              <span>Pull / Dent</span>
+            </button>
+            <button class="grid-btn" data-sculpt-mode="smooth">
+              <span class="icon">🫧</span>
+              <span>Smooth</span>
+            </button>
+            <button class="grid-btn" data-sculpt-mode="noise">
+              <span class="icon">〰️</span>
+              <span>Ripples</span>
+            </button>
+            <button class="grid-btn" data-sculpt-mode="flatten">
+              <span class="icon">➖</span>
+              <span>Flatten</span>
+            </button>
+          </div>
+
+          <div class="control-row">
+            <div class="control-label">
+              <span>Brush Radius</span>
+            </div>
+            <input id="slider-brush-radius" type="range" min="0.15" max="1.5" step="0.05" value="0.6">
+          </div>
+
+          <div class="control-row">
+            <div class="control-label">
+              <span>Brush Strength</span>
+            </div>
+            <input id="slider-brush-strength" type="range" min="0.05" max="1.0" step="0.05" value="0.35">
+          </div>
+
+          <div style="display: flex; gap: 8px; margin-top: 12px;">
+            <button id="btn-sculpt-undo" class="icon-btn" style="flex: 1; justify-content: center;">
+              <span>↩️</span> Undo
+            </button>
+            <button id="btn-sculpt-reset" class="icon-btn" style="flex: 1; justify-content: center;">
+              <span>🔄</span> Reset
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tab 4: Modifiers & Deformers -->
+      <div id="tab-modifiers" class="tab-content">
+        <div class="section-title">⚡ Procedural Deformers</div>
+
+        <div class="control-row">
+          <div class="control-label">
+            <span>Twist Angle</span>
+          </div>
+          <input id="slider-twist" type="range" min="-3.14" max="3.14" step="0.05" value="0">
+        </div>
+
+        <div class="control-row">
+          <div class="control-label">
+            <span>Simplex Noise Displacement</span>
+          </div>
+          <input id="slider-noise" type="range" min="0" max="1" step="0.02" value="0">
+        </div>
+
+        <div class="control-row">
+          <div class="control-label">
+            <span>Radial Wave Ripple</span>
+          </div>
+          <input id="slider-wave" type="range" min="0" max="1" step="0.02" value="0">
+        </div>
+
+        <div class="toggle-row" style="margin-top: 10px;">
+          <span class="toggle-label"><span>🌊</span> Animate Live Waves</span>
+          <label class="switch">
+            <input id="toggle-animate-deformers" type="checkbox">
+            <span class="slider-switch"></span>
+          </label>
+        </div>
+
+        <div class="section-title">🔺 Mesh Refinement</div>
+        <button id="btn-subdivide" class="action-btn-block">
+          <span>✨</span> Subdivide (2× Resolution)
+        </button>
+
+        <div class="section-title">🔄 Turntable</div>
+        <div class="toggle-row">
+          <span class="toggle-label"><span>🔄</span> Auto-Rotate Turntable</span>
+          <label class="switch">
+            <input id="toggle-autorotate" type="checkbox" checked>
+            <span class="slider-switch"></span>
+          </label>
+        </div>
+        <div class="control-row" style="margin-top: 8px;">
+          <div class="control-label">
+            <span>Rotation Speed</span>
+          </div>
+          <input id="slider-rotate-speed" type="range" min="0.1" max="3.0" step="0.1" value="0.8">
+        </div>
+      </div>
+
+      <!-- Tab 5: Export / Import -->
+      <div id="tab-export" class="tab-content">
+        <div class="section-title">💾 Export Mesh Assets</div>
+
+        <button id="btn-export-obj" class="action-btn-block" style="margin-bottom: 8px;">
+          <span>📦</span> Download Wavefront OBJ (.obj)
+        </button>
+        <p style="font-size: 11px; color: var(--text-muted); margin-bottom: 14px;">
+          Compatible with Blender, Maya, Cinema4D, Unity, Unreal Engine.
+        </p>
+
+        <button id="btn-export-stl-tab" onclick="document.getElementById('btn-export-stl').click();" class="action-btn-block" style="background: linear-gradient(135deg, rgba(255, 0, 127, 0.2), rgba(0, 240, 255, 0.2)); border-color: rgba(255, 0, 127, 0.4); color: var(--accent-magenta); margin-bottom: 8px;">
+          <span>🖨️</span> Download 3D Printable STL (.stl)
+        </button>
+        <p style="font-size: 11px; color: var(--text-muted); margin-bottom: 16px;">
+          Ready to open in Cura, PrusaSlicer, or Bambu Studio for 3D printing.
+        </p>
+
+        <div class="section-title">📂 Import Custom Mesh</div>
+        <div class="file-input-wrapper">
+          <button class="action-btn-block" style="background: rgba(255, 255, 255, 0.08); border-color: rgba(255, 255, 255, 0.2); color: #fff;">
+            <span>📁</span> Choose .OBJ File to Inspect
+          </button>
+          <input id="file-import-obj" type="file" accept=".obj">
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Mobile Floating Drawer Toggle Button -->
+  <button id="btn-toggle-drawer" class="mobile-drawer-toggle">
+    ⚙️ Controls
+  </button>
+
+  <!-- Camera Viewport Quick Dock (Bottom Right) -->
+  <div class="camera-dock glass-panel">
+    <button class="camera-btn active" data-camera="iso">ISO</button>
+    <button class="camera-btn" data-camera="front">FRONT</button>
+    <button class="camera-btn" data-camera="top">TOP</button>
+    <button class="camera-btn" data-camera="side">SIDE</button>
+  </div>
+
+  <!-- Local Offline-Capable Libraries -->
+  <script src="js/lib/three.min.js"></script>
+  <script src="js/lib/OrbitControls.js"></script>
+
+  <!-- Application Modules -->
+  <script src="js/noise.js"></script>
+  <script src="js/mesh-generators.js"></script>
+  <script src="js/sculpt-engine.js"></script>
+  <script src="js/materials.js"></script>
+  <script src="js/exporters.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
