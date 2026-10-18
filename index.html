@@ -418,13 +418,28 @@
 
       <!-- Tab 5: Export / Import -->
       <div id="tab-export" class="tab-content">
-        <div class="section-title">💾 Export Mesh Assets</div>
+        <div class="section-title">📱 Xogot Engine (Godot on iPad)</div>
 
-        <button id="btn-export-obj" class="action-btn-block" style="margin-bottom: 8px;">
-          <span>📦</span> Download Wavefront OBJ (.obj)
+        <button id="btn-export-glb-tab" onclick="document.getElementById('btn-export-glb').click();" class="action-btn-block" style="margin-bottom: 8px;">
+          <span>📦</span> Download Textured GLB (.glb)
+        </button>
+        <p style="font-size: 11px; color: var(--text-muted); margin-bottom: 12px;">
+          Recommended for <strong>Xogot on iPad</strong> (Godot 4). Contains the 3D mesh, UV coordinates, and embedded 2048×2048 PBR texture atlas in a single ready-to-import file.
+        </p>
+
+        <button id="btn-export-atlas" class="action-btn-block" style="background: rgba(255, 255, 255, 0.08); border-color: rgba(0, 240, 255, 0.35); color: #fff; margin-bottom: 8px;">
+          <span>🎨</span> Download 2048×2048 Texture Atlas (.png)
         </button>
         <p style="font-size: 11px; color: var(--text-muted); margin-bottom: 14px;">
-          Compatible with Blender, Maya, Cinema4D, Unity, Unreal Engine.
+          Standalone hand-painted 16-tile medieval texture sheet (stone, half-timber, roof shingles, doors, stained glass, banners, clock face).
+        </p>
+
+        <div class="section-title">💾 Standard 3D Formats</div>
+        <button id="btn-export-obj" class="action-btn-block" style="background: rgba(255, 255, 255, 0.08); border-color: rgba(255, 255, 255, 0.2); color: #fff; margin-bottom: 8px;">
+          <span>📐</span> Download Wavefront OBJ (.obj)
+        </button>
+        <p style="font-size: 11px; color: var(--text-muted); margin-bottom: 12px;">
+          Includes full UV coordinates (`vt`) mapped to the texture atlas.
         </p>
 
         <button id="btn-export-stl-tab" onclick="document.getElementById('btn-export-stl').click();" class="action-btn-block" style="background: linear-gradient(135deg, rgba(255, 0, 127, 0.2), rgba(0, 240, 255, 0.2)); border-color: rgba(255, 0, 127, 0.4); color: var(--accent-magenta); margin-bottom: 8px;">
@@ -461,9 +476,11 @@
   <!-- Local Offline-Capable Libraries -->
   <script src="js/lib/three.min.js"></script>
   <script src="js/lib/OrbitControls.js"></script>
+  <script src="js/lib/GLTFExporter.js"></script>
 
   <!-- Application Modules -->
   <script src="js/noise.js"></script>
+  <script src="js/medieval-house.js"></script>
   <script src="js/mesh-generators.js"></script>
   <script src="js/sculpt-engine.js"></script>
   <script src="js/materials.js"></script>

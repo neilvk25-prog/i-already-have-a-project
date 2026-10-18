@@ -6,13 +6,13 @@
 
   // State Management
   const state = {
-    currentPreset: 'torusKnot',
-    currentMaterial: 'chrome',
-    wireframeOverlay: true,
+    currentPreset: 'guildhallHouse',
+    currentMaterial: 'medievalAtlas',
+    wireframeOverlay: false,
     showNormals: false,
     showBoundingBox: false,
     autoRotate: true,
-    rotationSpeed: 0.8,
+    rotationSpeed: 0.45,
     shadingFlat: false,
 
     // Deformers
@@ -63,12 +63,12 @@
 
     // 1. Scene
     scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x080b12);
-    scene.fog = new THREE.FogExp2(0x080b12, 0.035);
+    scene.background = new THREE.Color(0x0c111d);
+    scene.fog = new THREE.FogExp2(0x0c111d, 0.025);
 
-    // 2. Camera
-    camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 100);
-    camera.position.set(0, 2.5, 6.5);
+    // 2. Camera (3/4 Isometric perspective matching the reference artwork)
+    camera = new THREE.PerspectiveCamera(42, window.innerWidth / window.innerHeight, 0.1, 100);
+    camera.position.set(4.2, 2.7, 6.2);
 
     // 3. Renderer
     renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, preserveDrawingBuffer: true });
@@ -77,16 +77,17 @@
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 1.1;
+    renderer.toneMappingExposure = 1.18;
     container.appendChild(renderer.domElement);
 
     // 4. Controls
     controls = new THREE.OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true;
     controls.dampingFactor = 0.06;
-    controls.minDistance = 1.5;
+    controls.minDistance = 1.8;
     controls.maxDistance = 25;
     controls.maxPolarAngle = Math.PI / 2 + 0.15; // Allow slight angle below floor
+    controls.target.set(0, -0.2, 0);
 
     // 5. Environment Map & Material Factory
     MaterialFactory.init(renderer);
@@ -100,42 +101,54 @@
     // 8. Sculpt Engine
     sculptEngine = new SculptEngine(scene, camera, renderer, () => activeMesh, controls);
 
-    // 9. Build Initial Mesh
-    loadPreset('torusKnot');
+    // 9. Render 2K Texture Atlas Preview in Sidebar
+    renderAtlasPreview();
 
-    // 10. Bind UI & Events
+    // 10. Build Initial Mesh (Medieval Guildhall)
+    loadPreset('guildhallHouse');
+
+    // 11. Bind UI & Events
     bindUIEvents();
 
-    // 11. Responsive resize
+    // 12. Responsive resize
     window.addEventListener('resize', onWindowResize);
 
-    // 12. Animation Loop
+    // 13. Animation Loop
     animate();
   }
 
+  function renderAtlasPreview() {
+    const previewCanvas = document.getElementById('atlas-preview-canvas');
+    if (previewCanvas && window.MedievalHouseBuilder) {
+      const atlas = window.MedievalHouseBuilder.getAtlasCanvas();
+      const pCtx = previewCanvas.getContext('2d');
+      pCtx.drawImage(atlas, 0, 0, previewCanvas.width, previewCanvas.height);
+    }
+  }
+
   function setupLighting() {
-    ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+    ambientLight = new THREE.HemisphereLight(0xfff6e5, 0x384558, 0.85);
     scene.add(ambientLight);
 
-    // Key Light
-    keyLight = new THREE.DirectionalLight(0xfff5ea, 1.4);
-    keyLight.position.set(5, 8, 6);
+    // Warm Golden Sun Key Light
+    keyLight = new THREE.DirectionalLight(0xfff2dc, 1.55);
+    keyLight.position.set(6, 9, 7);
     keyLight.castShadow = true;
-    keyLight.shadow.mapSize.width = 1024;
-    keyLight.shadow.mapSize.height = 1024;
+    keyLight.shadow.mapSize.width = 2048;
+    keyLight.shadow.mapSize.height = 2048;
     keyLight.shadow.camera.near = 0.5;
-    keyLight.shadow.camera.far = 25;
+    keyLight.shadow.camera.far = 28;
     keyLight.shadow.bias = -0.0005;
     scene.add(keyLight);
 
-    // Fill Light (Cyber Cyan tint)
-    fillLight = new THREE.DirectionalLight(0x4080ff, 0.8);
-    fillLight.position.set(-6, 3, -4);
+    // Soft Sky Fill Light
+    fillLight = new THREE.DirectionalLight(0x8ab4f8, 0.65);
+    fillLight.position.set(-7, 4, -5);
     scene.add(fillLight);
 
-    // Rim Light (Warm Violet/Amber rim)
-    rimLight = new THREE.PointLight(0xff3399, 1.5, 15);
-    rimLight.position.set(0, 4, -5);
+    // Warm Lantern / Torch Rim Light
+    rimLight = new THREE.PointLight(0xffaa44, 1.1, 16);
+    rimLight.position.set(-2, 2.5, 4.5);
     scene.add(rimLight);
   }
 
@@ -167,8 +180,19 @@
     state.waveAmp = 0;
     syncModifierSliders();
 
+    if (presetName === 'guildhallHouse') {
+      state.currentMaterial = 'medievalAtlas';
+      const matBtns = document.querySelectorAll('[data-material]');
+      matBtns.forEach(b => {
+        b.classList.toggle('active', b.getAttribute('data-material') === 'medievalAtlas');
+      });
+    }
+
     let geom;
     switch (presetName) {
+      case 'guildhallHouse':
+        geom = MeshGenerators.guildhallHouse();
+        break;
       case 'kleinBottle':
         geom = MeshGenerators.kleinBottle();
         break;
@@ -211,7 +235,7 @@
         geom = MeshGenerators.primitiveBox();
         break;
       default:
-        geom = MeshGenerators.torusKnot();
+        geom = MeshGenerators.guildhallHouse();
     }
 
     setNewGeometry(geom);
@@ -221,6 +245,15 @@
   function setNewGeometry(geom) {
     if (!geom.attributes.normal) geom.computeVertexNormals();
     geom.center();
+
+    // If displaying the Medieval Guildhall, seat its courtyard plinth cleanly on the ground grid (y = -2.18)
+    if (state.currentPreset === 'guildhallHouse') {
+      geom.computeBoundingBox();
+      if (geom.boundingBox) {
+        const yOffset = -2.18 - geom.boundingBox.min.y;
+        geom.translate(0, yOffset, 0);
+      }
+    }
 
     // Cache un-deformed base clone
     if (baseGeometry) baseGeometry.dispose();
@@ -242,6 +275,10 @@
     activeMesh = new THREE.Mesh(geom, material);
     activeMesh.castShadow = true;
     activeMesh.receiveShadow = true;
+    // Start with a slight 3/4 front-right presentation angle
+    if (state.currentPreset === 'guildhallHouse') {
+      activeMesh.rotation.y = -0.38;
+    }
     scene.add(activeMesh);
 
     // Wireframe overlay
@@ -484,9 +521,11 @@
   function updateParametricControlsVisibility() {
     const torusControls = document.getElementById('torus-controls');
     const superControls = document.getElementById('superformula-controls');
+    const guildhallCard = document.getElementById('guildhall-info-card');
 
     if (torusControls) torusControls.style.display = state.currentPreset === 'torusKnot' ? 'block' : 'none';
     if (superControls) superControls.style.display = state.currentPreset === 'superformula' ? 'block' : 'none';
+    if (guildhallCard) guildhallCard.style.display = state.currentPreset === 'guildhallHouse' ? 'block' : 'none';
   }
 
   function syncModifierSliders() {
@@ -501,25 +540,25 @@
 
   // Camera presets
   function setCameraView(view) {
-    const dist = 6.5;
+    const dist = 7.4;
     controls.reset();
     switch (view) {
       case 'front':
-        camera.position.set(0, 0, dist);
+        camera.position.set(0, 0.6, dist);
         break;
       case 'top':
-        camera.position.set(0, dist, 0.001);
+        camera.position.set(0, dist * 1.15, 0.001);
         break;
       case 'side':
-        camera.position.set(dist, 0, 0);
+        camera.position.set(dist, 0.6, 0);
         break;
       case 'iso':
       default:
-        camera.position.set(dist * 0.6, dist * 0.5, dist * 0.6);
+        camera.position.set(4.2, 2.7, 6.2);
         break;
     }
-    controls.target.set(0, 0, 0);
-    camera.lookAt(0, 0, 0);
+    controls.target.set(0, -0.2, 0);
+    camera.lookAt(0, -0.2, 0);
   }
 
   // Capture High-Res Snapshot
@@ -757,17 +796,42 @@
       });
     });
 
+    // Export GLB (for Xogot Engine on iPad)
+    const exportGlbBtn = document.getElementById('btn-export-glb');
+    if (exportGlbBtn) {
+      exportGlbBtn.addEventListener('click', () => {
+        const fname = state.currentPreset === 'guildhallHouse' ? 'medieval_guildhall.glb' : `${state.currentPreset}.glb`;
+        MeshIO.exportGLB(activeMesh, fname);
+      });
+    }
+
+    // Export 2K Texture Atlas PNG
+    const exportAtlasBtn = document.getElementById('btn-export-atlas');
+    if (exportAtlasBtn) {
+      exportAtlasBtn.addEventListener('click', () => {
+        MeshIO.exportAtlasPNG('medieval_guildhall_atlas.png');
+      });
+    }
+    const quickAtlasBtn = document.getElementById('btn-quick-atlas');
+    if (quickAtlasBtn) {
+      quickAtlasBtn.addEventListener('click', () => {
+        MeshIO.exportAtlasPNG('medieval_guildhall_atlas.png');
+      });
+    }
+
     // Export OBJ & STL
     const exportObjBtn = document.getElementById('btn-export-obj');
     if (exportObjBtn) {
       exportObjBtn.addEventListener('click', () => {
-        MeshIO.exportOBJ(activeMesh, `${state.currentPreset}.obj`);
+        const fname = state.currentPreset === 'guildhallHouse' ? 'medieval_guildhall.obj' : `${state.currentPreset}.obj`;
+        MeshIO.exportOBJ(activeMesh, fname);
       });
     }
     const exportStlBtn = document.getElementById('btn-export-stl');
     if (exportStlBtn) {
       exportStlBtn.addEventListener('click', () => {
-        MeshIO.exportSTL(activeMesh, `${state.currentPreset}.stl`);
+        const fname = state.currentPreset === 'guildhallHouse' ? 'medieval_guildhall.stl' : `${state.currentPreset}.stl`;
+        MeshIO.exportSTL(activeMesh, fname);
       });
     }
 
