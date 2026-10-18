@@ -180,7 +180,7 @@
     state.waveAmp = 0;
     syncModifierSliders();
 
-    if (presetName === 'guildhallHouse') {
+    if (presetName === 'guildhallHouse' || presetName === 'guildhallPlan') {
       state.currentMaterial = 'medievalAtlas';
       const matBtns = document.querySelectorAll('[data-material]');
       matBtns.forEach(b => {
@@ -192,6 +192,9 @@
     switch (presetName) {
       case 'guildhallHouse':
         geom = MeshGenerators.guildhallHouse();
+        break;
+      case 'guildhallPlan':
+        geom = MeshGenerators.guildhallPlan();
         break;
       case 'kleinBottle':
         geom = MeshGenerators.kleinBottle();
@@ -246,8 +249,8 @@
     if (!geom.attributes.normal) geom.computeVertexNormals();
     geom.center();
 
-    // If displaying the Medieval Guildhall, seat its courtyard plinth cleanly on the ground grid (y = -2.18)
-    if (state.currentPreset === 'guildhallHouse') {
+    // If displaying the Medieval Guildhall or Floor Plan, seat its courtyard plinth cleanly on the ground grid (y = -2.18)
+    if (state.currentPreset === 'guildhallHouse' || state.currentPreset === 'guildhallPlan') {
       geom.computeBoundingBox();
       if (geom.boundingBox) {
         const yOffset = -2.18 - geom.boundingBox.min.y;
@@ -276,7 +279,7 @@
     activeMesh.castShadow = true;
     activeMesh.receiveShadow = true;
     // Start with a slight 3/4 front-right presentation angle
-    if (state.currentPreset === 'guildhallHouse') {
+    if (state.currentPreset === 'guildhallHouse' || state.currentPreset === 'guildhallPlan') {
       activeMesh.rotation.y = -0.38;
     }
     scene.add(activeMesh);
@@ -525,7 +528,10 @@
 
     if (torusControls) torusControls.style.display = state.currentPreset === 'torusKnot' ? 'block' : 'none';
     if (superControls) superControls.style.display = state.currentPreset === 'superformula' ? 'block' : 'none';
-    if (guildhallCard) guildhallCard.style.display = state.currentPreset === 'guildhallHouse' ? 'block' : 'none';
+    if (guildhallCard) {
+      const isGuildhall = state.currentPreset === 'guildhallHouse' || state.currentPreset === 'guildhallPlan';
+      guildhallCard.style.display = isGuildhall ? 'block' : 'none';
+    }
   }
 
   function syncModifierSliders() {
@@ -538,22 +544,38 @@
     if (waveInput) waveInput.value = state.waveAmp;
   }
 
-  // Camera presets
+  // Camera presets matching the 5 views on the Architectural Blueprint
   function setCameraView(view) {
     const dist = 7.4;
     controls.reset();
+    if (activeMesh && view !== 'iso') {
+      activeMesh.rotation.y = 0;
+      state.autoRotate = false;
+      const rotateToggle = document.getElementById('toggle-autorotate');
+      if (rotateToggle) rotateToggle.checked = false;
+    }
     switch (view) {
       case 'front':
-        camera.position.set(0, 0.6, dist);
+        camera.position.set(0, 0.3, dist);
+        break;
+      case 'rear':
+        camera.position.set(0, 0.3, -dist);
+        break;
+      case 'right':
+      case 'side':
+        camera.position.set(dist, 0.3, 0);
+        break;
+      case 'left':
+        camera.position.set(-dist, 0.3, 0);
         break;
       case 'top':
         camera.position.set(0, dist * 1.15, 0.001);
         break;
-      case 'side':
-        camera.position.set(dist, 0.6, 0);
-        break;
       case 'iso':
       default:
+        if (activeMesh && (state.currentPreset === 'guildhallHouse' || state.currentPreset === 'guildhallPlan')) {
+          activeMesh.rotation.y = -0.38;
+        }
         camera.position.set(4.2, 2.7, 6.2);
         break;
     }
